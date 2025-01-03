@@ -43,7 +43,7 @@ public:
     /*----------start connection to eimu_driver module---------------*/
     eimu.connect(port);
     // wait for the imu to fully setup
-    for (int i = 1; i <= 10; i += 1)
+    for (int i = 1; i <= 6; i += 1)
     {
       delay_ms(1000);
       RCLCPP_INFO(this->get_logger(), "%d", i);
@@ -52,6 +52,12 @@ public:
     eimu.getGain(filterGain);
     eimu.setRefFrame(eimu_reference_frame_id);
     eimu.getRefFrame(ref_frame_id);
+
+    for (int i = 7; i <= 10; i += 1)
+    {
+      delay_ms(1000);
+      RCLCPP_INFO(this->get_logger(), "%d", i);
+    }
     /*---------------------------------------------------------------------*/
 
     /*----------initialize IMU message---------------*/
