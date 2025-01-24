@@ -77,4 +77,4 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
 
   
 #### Sample robot test
- - please chekout the [**`easy_bot`**](https://github.com/robocre8/easy_bot) package to see proper sample of how combine the EIMU with the EPMC and ekf sensor-fusion.
+ - please chekout the [**`easy_demo_bot`**](https://github.com/robocre8/easy_demo_bot) package to see proper sample of how combine the EIMU with the EPMC and ekf sensor-fusion.
