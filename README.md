@@ -1,5 +1,5 @@
 ## Easy IMU ROS Package
-This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EIMU Module`**) with **ROS2** in a PC or microcomputer, after successful setup with the [eimu_setup_application](https://github.com/samuko-things-company/eimu_setup_application).
+This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EIMU Module`**) with **ROS2** in a PC or microcomputer, after successful setup with the [eimu_setup_application](https://github.com/robocre8/eimu_setup_application).
 
 > [!NOTE]  
 > It should be used with your ros2 project running on linux `Ubuntu 22.04` [`ros-humble`] (e.g Raspberry Pi, PC, etc.)
@@ -76,3 +76,5 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
 >*NOTE: Feel free to use/edit the package as you see fit on your project.*
 
   
+#### Sample robot test
+ - please chekout the [**`easy_bot`**](https://github.com/robocre8/easy_bot) package to see proper sample of how combine the EIMU with the EPMC and ekf sensor-fusion.
