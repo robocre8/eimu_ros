@@ -1,5 +1,5 @@
-#ifndef EIMU_LIBSERIAL_COMM_HPP
-#define EIMU_LIBSERIAL_COMM_HPP
+#ifndef EIMU_SERIAL_HPP
+#define EIMU_SERIAL_HPP
 
 // #include <cstring>
 #include <sstream>

@@ -5,17 +5,17 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
-#include "eimu_ros2/eimu.hpp"
+#include "eimu_ros/eimu_serial.hpp"
 
 void delay_ms(unsigned long milliseconds)
 {
   usleep(milliseconds * 1000);
 }
 
-class EIMURos2 : public rclcpp::Node
+class EIMURos : public rclcpp::Node
 {
 public:
-  EIMURos2() : Node("eimu_ros2")
+  EIMURos() : Node("eimu_ros")
   {
     /*---------------node parameter declaration-----------------------------*/
     this->declare_parameter<std::string>("frame_id", "imu");
@@ -82,11 +82,11 @@ public:
 
     timer_ = this->create_wall_timer(
         std::chrono::microseconds((long)(1000000 / publish_frequency)),
-        std::bind(&EIMURos2::publish_imu_callback, this));
+        std::bind(&EIMURos::publish_imu_callback, this));
     /*---------------------------------------------------------------------*/
 
-    RCLCPP_INFO(this->get_logger(), "eimu_ros2 node has started with filterGain: %f", filterGain);
-    RCLCPP_INFO(this->get_logger(), "eimu_ros2 node has started with Reference Frame: %s", ref_frame_list[ref_frame_id].c_str());
+    RCLCPP_INFO(this->get_logger(), "eimu_ros node has started with filterGain: %f", filterGain);
+    RCLCPP_INFO(this->get_logger(), "eimu_ros node has started with Reference Frame: %s", ref_frame_list[ref_frame_id].c_str());
     if (publish_tf_on_map_frame)
     {
       RCLCPP_INFO(this->get_logger(), "imu transform is being published on map-frame for test rviz viewing");
@@ -175,7 +175,7 @@ private:
 int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<EIMURos2>(); // MODIFY NAME
+  auto node = std::make_shared<EIMURos>(); // MODIFY NAME
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
