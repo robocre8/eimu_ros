@@ -1,11 +1,11 @@
 ## Easy IMU ROS Package
-This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EIMU Module`**) with **ROS2** in a PC or microcomputer, after successful setup with the [eimu_setup_application](https://github.com/robocre8/eimu_setup_application).
+This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EIMU Module`**) with **ROS2** in a PC or microcomputer, after successful setup with the [eimu_setup_application](https://robocre8.gitbook.io/robocre8/eimu-tutorials/how-to-calibrate-and-setup-the-eimu).
 
 > [!NOTE]  
 > It should be used with your ros2 project running on linux `Ubuntu 22.04` [`ros-humble`] (e.g Raspberry Pi, PC, etc.)
 
 ## How to Use the Package
-- ensure you've already set up your microcomputer or PC system with [`ros-humble`](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debians.html) with [`colcon`](https://docs.ros.org/en/humble/Tutorials/Beginner-Client-Libraries/Colcon-Tutorial.html) and your `ros workspace` also setup
+- ensure you've already set up your microcomputer or PC system with [`ros-humble`](https://robocre8.gitbook.io/robocre8/tutorials/how-to-install-ros2-humble-desktop-on-pc-full-install) and your `ros workspace` also setup
 
 - install the `libserial-dev` package on your linux machine
   ```shell
@@ -13,10 +13,10 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
   sudo apt install libserial-dev
   ```
 
-- install `rosdep` so you can install necessary ros related dependencies for the package.
+- install `rosdep` so you can install necessary ros related dependencies for the package (if you have not).
   ```shell
   sudo apt-get update
-  sudo apt install python3-rosdep2
+  sudo apt install python3-rosdep
   sudo rosdep init
   rosdep update
   ```
@@ -61,7 +61,7 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
   ```shell
   rviz2
   ```
-  > Add TF and move the IMU about to see the transform from the imu frame to the map frame for test.
+  > Add TF and rotate the EIMU to see the transform from the imu frame to the map frame for test.
 
 - to use in your project (e.g with a URDF file).
   > Ensure the name of the imu link frame in your URDF FILE is the same as that of the `frame_id` in the `eimu_ros_start_params.yaml`
@@ -77,4 +77,4 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
 
   
 #### Sample robot test
- - please chekout the [**`easy_demo_bot`**](https://github.com/robocre8/easy_demo_bot) package to see proper sample of how combine the EIMU with the EPMC and ekf sensor-fusion.
+ - please chekout the [**`easy_demo_bot`**](https://github.com/robocre8/easy_demo_bot) package to see proper sample of how combine the EIMU with the EPMC and ekf sensor-fusion in a mobile robot.
