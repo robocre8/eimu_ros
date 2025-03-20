@@ -32,7 +32,11 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
   rosdep install --from-paths src --ignore-src -r -y
   ```
 
-- connect the **`Easy IMU Module`** to the Computer (PC or microcomputer) and check its serial port:
+- build the packages with colcon (in the root directory of your **`ros workspace`**):
+  ```shell
+  colcon build --packages-select eimu_ros --symlink-install
+  ```
+- before you start running the package, connect the **`Easy IMU Module`** to the Computer (PC or microcomputer) and check its serial port:
   > The best way to select the right serial port (if you are using multiple serial devices) is to select by path
   ```shell
   ls /dev/serial/by-path
@@ -46,11 +50,6 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
   > you should see **/dev/ttyUSB0** or **/dev/ttyUSB1** and so on
 
 - go to the `config` folder inside the **`eimu_ros`** package folder. You'll see two params file. Change the serial port value to that found in the previous step. You don't need to change the `frame_id` and `publish_frequncy` values. leave the `publish_tf_on_map_frame` value as it is in both param files.
-
-- build the packages with colcon (in your **`ros workspace`** root folder):
-  ```shell
-  colcon build --packages-select eimu_ros --symlink-install
-  ```
 
 - to vizualize in rviz (i.e quick test to see the IMU working), run:
   > *don't forget to source your `ros workspace`*
