@@ -68,8 +68,8 @@ public:
     /*---------------------------------------------------------------------*/
 
     /*---------------start imu and mag publishers and timer-----------------------------*/
-    imu_data_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("/imu/data", 10);
-    imu_rpy_publisher_ = this->create_publisher<geometry_msgs::msg::Vector3Stamped>("/imu/data_rpy", 10);
+    imu_data_publisher_ = this->create_publisher<sensor_msgs::msg::Imu>("imu/data", 10);
+    imu_rpy_publisher_ = this->create_publisher<geometry_msgs::msg::Vector3Stamped>("imu/data_rpy", 10);
 
     // Initialize the transform broadcaster
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
