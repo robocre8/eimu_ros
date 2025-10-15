@@ -5,22 +5,22 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
-#include "eimu_ros/eimu_serial.hpp"
+#include "eimu_ros/eimu.hpp"
 
 void delay_ms(unsigned long milliseconds)
 {
   usleep(milliseconds * 1000);
 }
 
-class EIMURos : public rclcpp::Node
+class EIMU_ROS : public rclcpp::Node
 {
 public:
-  EIMURos() : Node("eimu_ros")
+  EIMU_ROS() : Node("eimu_ros")
   {
     /*---------------node parameter declaration-----------------------------*/
     this->declare_parameter<std::string>("frame_id", "imu");
     this->declare_parameter<std::string>("port", "/dev/ttyUSB0");
-    this->declare_parameter<double>("publish_frequency", 10.0);
+    this->declare_parameter<double>("publish_frequency", 50.0);
     this->declare_parameter<int>("eimu_reference_frame_id", 1);
     this->declare_parameter<bool>("publish_tf_on_map_frame", false);
 
@@ -43,27 +43,27 @@ public:
     /*----------start connection to eimu_driver module---------------*/
     eimu.connect(port);
     // wait for the imu to fully setup
-    for (int i = 1; i <= 6; i += 1)
+    for (int i = 1; i <= 2; i += 1)
     {
       delay_ms(1000);
       RCLCPP_INFO(this->get_logger(), "%d", i);
     }
 
-    eimu.getGain(filterGain);
-    eimu.setRefFrame(eimu_reference_frame_id);
-    eimu.getRefFrame(ref_frame_id);
+    filterGain = eimu.getFilterGain();
+    eimu.setWorldFrameId(eimu_reference_frame_id);
+    ref_frame_id = eimu.getWorldFrameId();
     /*---------------------------------------------------------------------*/
 
     /*----------initialize IMU message---------------*/
     messageImu.header.frame_id = frame_id;
 
-    eimu.getRPYvariance(data_x, data_y, data_z);
+    eimu.readRPYVariance(data_x, data_y, data_z);
     messageImu.orientation_covariance = {data_x, 0.0, 0.0, 0.0, data_y, 0.0, 0.0, 0.0, data_z};
 
-    eimu.getGyroVariance(data_x, data_y, data_z);
+    eimu.readGyroVariance(data_x, data_y, data_z);
     messageImu.angular_velocity_covariance = {data_x, 0.0, 0.0, 0.0, data_y, 0.0, 0.0, 0.0, data_z};
 
-    eimu.getAccVariance(data_x, data_y, data_z);
+    eimu.readAccVariance(data_x, data_y, data_z);
     messageImu.linear_acceleration_covariance = {data_x, 0.0, 0.0, 0.0, data_y, 0.0, 0.0, 0.0, data_z};
     /*---------------------------------------------------------------------*/
 
@@ -74,9 +74,10 @@ public:
     // Initialize the transform broadcaster
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
+    eimu.clearDataBuffer();
     timer_ = this->create_wall_timer(
         std::chrono::microseconds((long)(1000000 / publish_frequency)),
-        std::bind(&EIMURos::publish_imu_callback, this));
+        std::bind(&EIMU_ROS::publish_imu_callback, this));
     /*---------------------------------------------------------------------*/
 
     RCLCPP_INFO(this->get_logger(), "eimu_ros node has started with filterGain: %f", filterGain);
@@ -92,29 +93,40 @@ private:
   {
     messageImu.header.stamp = rclcpp::Clock().now();
 
-    eimu.getQuat(data_w, data_x, data_y, data_z);
-    messageImu.orientation.w = data_w;
-    messageImu.orientation.x = data_x;
-    messageImu.orientation.y = data_y;
-    messageImu.orientation.z = data_z;
+    eimu.readRPY(r, p, y);
+    
+    rpy.vector.x = r;
+    rpy.vector.y = p;
+    rpy.vector.z = y;
 
-    eimu.getGyro(data_x, data_y, data_z);
-    messageImu.angular_velocity.x = data_x;
-    messageImu.angular_velocity.y = data_y;
-    messageImu.angular_velocity.z = data_z;
+    // Create TF2 quaternion
+    tf2::Quaternion q;
+    q.setRPY(r, p, y); 
 
-    eimu.getAcc(data_x, data_y, data_z);
-    messageImu.linear_acceleration.x = data_x;
-    messageImu.linear_acceleration.y = data_y;
-    messageImu.linear_acceleration.z = data_z;
+    // Fill ROS2 message
+    geometry_msgs::msg::Quaternion q_msg;
+    messageImu.orientation.w = q.w();
+    messageImu.orientation.x = q.x();
+    messageImu.orientation.y = q.y();
+    messageImu.orientation.z = q.z();
 
-    geometry_msgs::msg::Vector3Stamped rpy;
-    tf2::Matrix3x3(tf2::Quaternion(
-                       messageImu.orientation.x,
-                       messageImu.orientation.y,
-                       messageImu.orientation.z,
-                       messageImu.orientation.w))
-        .getRPY(rpy.vector.x, rpy.vector.y, rpy.vector.z);
+    eimu.readAccGyro(ax, ay, az, gx, gy, gz);
+    messageImu.angular_velocity.x = gx;
+    messageImu.angular_velocity.y = gy;
+    messageImu.angular_velocity.z = gz;
+
+    messageImu.linear_acceleration.x = ax;
+    messageImu.linear_acceleration.y = ay;
+    messageImu.linear_acceleration.z = az;
+
+    
+    // tf2::Matrix3x3(tf2::Quaternion(
+    //                    messageImu.orientation.x,
+    //                    messageImu.orientation.y,
+    //                    messageImu.orientation.z,
+    //                    messageImu.orientation.w))
+    //     .getRPY(rpy.vector.x, rpy.vector.y, rpy.vector.z);
+    
     rpy.header = messageImu.header;
 
     if (publish_tf_on_map_frame)
@@ -151,6 +163,7 @@ private:
   rclcpp::TimerBase::SharedPtr timer_;
 
   sensor_msgs::msg::Imu messageImu = sensor_msgs::msg::Imu();
+  geometry_msgs::msg::Vector3Stamped rpy;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
   std::string frame_id;
@@ -161,7 +174,8 @@ private:
   bool publish_tf_on_map_frame;
 
   EIMU eimu;
-  float data_w, data_x, data_y, data_z;
+  float data_x, data_y, data_z;
+  float r, p, y, ax, ay, az, gx, gy, gz;
   float filterGain;
   int ref_frame_id;
 };
@@ -169,7 +183,7 @@ private:
 int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<EIMURos>(); // MODIFY NAME
+  auto node = std::make_shared<EIMU_ROS>(); // MODIFY NAME
   rclcpp::spin(node);
   rclcpp::shutdown();
   return 0;
