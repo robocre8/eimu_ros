@@ -26,6 +26,7 @@ const uint8_t GET_FRAME_ID = 0x20;
 const uint8_t READ_QUAT_RPY = 0x22;
 const uint8_t READ_ACC_GYRO = 0x23;
 const uint8_t CLEAR_DATA_BUFFER = 0x27;
+const uint8_t READ_IMU_DATA = 0x28;
 //---------------------------------------------
 
 LibSerial::BaudRate convert_baud_rate(int baud_rate)
@@ -113,55 +114,60 @@ public:
     return gain;
   }
 
-  void readAcc(float &x, float &y, float &z)
+  bool readAcc(float &x, float &y, float &z)
   {
-    read_data3(READ_ACC, x, y, z);
+    return read_data3(READ_ACC, x, y, z);
   }
 
-  void readAccVariance(float &x, float &y, float &z)
+  bool readAccVariance(float &x, float &y, float &z)
   {
-    read_data3(READ_ACC_VAR, x, y, z);
+    return read_data3(READ_ACC_VAR, x, y, z);
+  }
+  
+  bool readGyro(float &x, float &y, float &z)
+  {
+    return read_data3(READ_GYRO, x, y, z);
   }
 
-  void readGyro(float &x, float &y, float &z)
+  bool readGyroVariance(float &x, float &y, float &z)
   {
-    read_data3(READ_GYRO, x, y, z);
+    return read_data3(READ_GYRO_VAR, x, y, z);
   }
 
-  void readGyroVariance(float &x, float &y, float &z)
+  bool readRPY(float &x, float &y, float &z)
   {
-    read_data3(READ_GYRO_VAR, x, y, z);
+    return read_data3(READ_RPY, x, y, z);
   }
 
-  void readRPY(float &x, float &y, float &z)
+  bool readRPYVariance(float &x, float &y, float &z)
   {
-    read_data3(READ_RPY, x, y, z);
+    return read_data3(READ_RPY_VAR, x, y, z);
   }
 
-  void readRPYVariance(float &x, float &y, float &z)
+  bool readQuat(float &qw, float &qx, float &qy, float &qz)
   {
-    read_data3(READ_RPY_VAR, x, y, z);
+    return read_data4(READ_QUAT, qw, qx, qy, qz);
   }
 
-  void readQuat(float &qw, float &qx, float &qy, float &qz)
+  bool readMag(float &x, float &y, float &z)
   {
-    read_data4(READ_QUAT, qw, qx, qy, qz);
+    return read_data3(READ_MAG, x, y, z);
   }
 
-  void readMag(float &x, float &y, float &z)
-  {
-    read_data3(READ_MAG, x, y, z);
-  }
-
-  void readQuatRPY(float &qw, float& qx, float &qy, float &qz, float &r, float& p, float &y)
+  bool readQuatRPY(float &qw, float& qx, float &qy, float &qz, float &r, float& p, float &y)
   {
     float dummy_data;
-    read_data8(READ_QUAT_RPY, qw, qx, qy, qz, r, p, y, dummy_data);
+    return read_data8(READ_QUAT_RPY, qw, qx, qy, qz, r, p, y, dummy_data);
   }
 
-  void readAccGyro(float &ax, float &ay, float &az, float &gx, float &gy, float &gz)
+  bool readAccGyro(float &ax, float &ay, float &az, float &gx, float &gy, float &gz)
   {
-    read_data6(READ_ACC_GYRO, ax, ay, az, gx, gy, gz);
+    return read_data6(READ_ACC_GYRO, ax, ay, az, gx, gy, gz);
+  }
+
+  bool readImuData(float &r, float &p, float &y, float &ax, float &ay, float &az, float &gx, float &gy, float &gz)
+  {
+    return read_data9(READ_IMU_DATA, r, p, y, ax, ay, az, gx, gy, gz);
   }
 
   int clearDataBuffer()
@@ -195,36 +201,98 @@ private:
       serial_conn_.Write(packet);
   }
 
-  float read_packet1() {
-      std::vector<uint8_t> payload(4);
-      serial_conn_.Read(payload, 4);
-      float val;
+  bool read_packet1(float &val) {
+      std::vector<uint8_t> payload;
+      try {
+        serial_conn_.Read(payload, 4, timeout_ms_);
+        if (payload.size() < 4) {
+          std::cerr << "[EPMC SERIAL COMM]: Incomplete packet — received only "
+                    << payload.size() << " bytes instead of 4." << std::endl;
+          return false;
+        }
+      } catch (const LibSerial::ReadTimeout&) {
+          std::cerr << "[EPMC SERIAL COMM]: Timeout while reading packet1" << std::endl;
+          return false;
+      }
       std::memcpy(&val, payload.data(), sizeof(float)); // little-endian assumed
-      return val;
+      return true;
   }
 
-  void read_packet3(float &val0, float &val1, float &val2) {
-      std::vector<uint8_t> payload(12);
-      serial_conn_.Read(payload, 12);
+  bool read_packet2(float &val0, float &val1) {
+      std::vector<uint8_t> payload;
+      try {
+        serial_conn_.Read(payload, 8, timeout_ms_);
+        if (payload.size() < 8) {
+          std::cerr << "[EPMC SERIAL COMM]: Incomplete packet — received only "
+                    << payload.size() << " bytes instead of 8." << std::endl;
+          return false;
+        }
+      } catch (const LibSerial::ReadTimeout&) {
+          std::cerr << "[EPMC SERIAL COMM]: Timeout while reading packet2" << std::endl;
+          return false;
+      }
+      std::memcpy(&val0, payload.data() + 0, sizeof(float));
+      std::memcpy(&val1, payload.data() + 4, sizeof(float));
+      return true;
+  }
+
+  bool read_packet3(float &val0, float &val1, float &val2) {
+      std::vector<uint8_t> payload;
+      try {
+        serial_conn_.Read(payload, 12, timeout_ms_);
+        if (payload.size() < 12) {
+          std::cerr << "[EPMC SERIAL COMM]: Incomplete packet — received only "
+                    << payload.size() << " bytes instead of 12." << std::endl;
+          serial_conn_.FlushIOBuffers();  // clears stale bytes
+          return false;
+        }
+      } catch (const LibSerial::ReadTimeout&) {
+          std::cerr << "[EPMC SERIAL COMM]: Timeout while reading packet3" << std::endl;
+          return false;
+      }
 
       std::memcpy(&val0, payload.data() + 0, sizeof(float));
       std::memcpy(&val1, payload.data() + 4, sizeof(float));
       std::memcpy(&val2, payload.data() + 8, sizeof(float));
+      return true;
   }
 
-  void read_packet4(float &val0, float &val1, float &val2, float &val3) {
-      std::vector<uint8_t> payload(16);
-      serial_conn_.Read(payload, 16);
+  bool read_packet4(float &val0, float &val1, float &val2, float &val3) {
+      std::vector<uint8_t> payload;
+      try {
+        serial_conn_.Read(payload, 16, timeout_ms_);
+        if (payload.size() < 16) {
+          std::cerr << "[EPMC SERIAL COMM]: Incomplete packet — received only "
+                    << payload.size() << " bytes instead of 16." << std::endl;
+          serial_conn_.FlushIOBuffers();  // clears stale bytes
+          return false;
+        }
+      } catch (const LibSerial::ReadTimeout&) {
+          std::cerr << "[EPMC SERIAL COMM]: Timeout while reading packet4" << std::endl;
+          return false;
+      }
 
       std::memcpy(&val0, payload.data() + 0, sizeof(float));
       std::memcpy(&val1, payload.data() + 4, sizeof(float));
       std::memcpy(&val2, payload.data() + 8, sizeof(float));
       std::memcpy(&val3, payload.data() + 12, sizeof(float));
+      return true;
   }
 
-  void read_packet6(float &val0, float &val1, float &val2, float &val3, float &val4, float &val5) {
-      std::vector<uint8_t> payload(24);
-      serial_conn_.Read(payload, 24);
+  bool read_packet6(float &val0, float &val1, float &val2, float &val3, float &val4, float &val5) {
+      std::vector<uint8_t> payload;
+      try {
+        serial_conn_.Read(payload, 24, timeout_ms_);
+        if (payload.size() < 24) {
+          std::cerr << "[EPMC SERIAL COMM]: Incomplete packet — received only "
+                    << payload.size() << " bytes instead of 24." << std::endl;
+          serial_conn_.FlushIOBuffers();  // clears stale bytes
+          return false;
+        }
+      } catch (const LibSerial::ReadTimeout&) {
+          std::cerr << "[EPMC SERIAL COMM]: Timeout while reading packet6" << std::endl;
+          return false;
+      }
 
       std::memcpy(&val0, payload.data() + 0, sizeof(float));
       std::memcpy(&val1, payload.data() + 4, sizeof(float));
@@ -232,11 +300,24 @@ private:
       std::memcpy(&val3, payload.data() + 12, sizeof(float));
       std::memcpy(&val4, payload.data() + 16, sizeof(float));
       std::memcpy(&val5, payload.data() + 20, sizeof(float));
+      return true;
   }
 
-  void read_packet8(float &val0, float &val1, float &val2, float &val3, float &val4, float &val5, float &val6, float &val7) {
-      std::vector<uint8_t> payload(32);
-      serial_conn_.Read(payload, 32);
+
+  bool read_packet8(float &val0, float &val1, float &val2, float &val3, float &val4, float &val5, float &val6, float &val7) {
+      std::vector<uint8_t> payload;
+      try {
+        serial_conn_.Read(payload, 32, timeout_ms_);
+        if (payload.size() < 32) {
+          std::cerr << "[EPMC SERIAL COMM]: Incomplete packet — received only "
+                    << payload.size() << " bytes instead of 32." << std::endl;
+          serial_conn_.FlushIOBuffers();  // clears stale bytes
+          return false;
+        }
+      } catch (const LibSerial::ReadTimeout&) {
+          std::cerr << "[EPMC SERIAL COMM]: Timeout while reading packet8" << std::endl;
+          return false;
+      }
 
       std::memcpy(&val0, payload.data() + 0, sizeof(float));
       std::memcpy(&val1, payload.data() + 4, sizeof(float));
@@ -246,6 +327,34 @@ private:
       std::memcpy(&val5, payload.data() + 20, sizeof(float));
       std::memcpy(&val6, payload.data() + 24, sizeof(float));
       std::memcpy(&val7, payload.data() + 28, sizeof(float));
+      return true;
+  }
+
+  bool read_packet9(float &val0, float &val1, float &val2, float &val3, float &val4, float &val5, float &val6, float &val7, float &val8) {
+      std::vector<uint8_t> payload;
+      try {
+        serial_conn_.Read(payload, 36, timeout_ms_);
+        if (payload.size() < 36) {
+          std::cerr << "[EPMC SERIAL COMM]: Incomplete packet — received only "
+                    << payload.size() << " bytes instead of 36." << std::endl;
+          serial_conn_.FlushIOBuffers();  // clears stale bytes
+          return false;
+        }
+      } catch (const LibSerial::ReadTimeout&) {
+          std::cerr << "[EPMC SERIAL COMM]: Timeout while reading packet9" << std::endl;
+          return false;
+      }
+
+      std::memcpy(&val0, payload.data() + 0, sizeof(float));
+      std::memcpy(&val1, payload.data() + 4, sizeof(float));
+      std::memcpy(&val2, payload.data() + 8, sizeof(float));
+      std::memcpy(&val3, payload.data() + 12, sizeof(float));
+      std::memcpy(&val4, payload.data() + 16, sizeof(float));
+      std::memcpy(&val5, payload.data() + 20, sizeof(float));std::memcpy(&val7, payload.data() + 28, sizeof(float));
+      std::memcpy(&val6, payload.data() + 24, sizeof(float));
+      std::memcpy(&val7, payload.data() + 28, sizeof(float));
+      std::memcpy(&val8, payload.data() + 28, sizeof(float));
+      return true;
   }
 
   // ------------------- High-Level Wrappers -------------------
@@ -254,7 +363,12 @@ private:
       payload[0] = pos;
       std::memcpy(&payload[1], &val, sizeof(float));
       send_packet_with_payload(cmd, payload);
-      return read_packet1();
+      float data;
+      if (!read_packet1(data)) {
+        // std::cerr << "EPMC SERIAL COMM: Failed to read packet!" << std::endl;
+        return 0.0;
+      }
+      return data;
   }
 
   float read_data1(uint8_t cmd, uint8_t pos) {
@@ -263,37 +377,84 @@ private:
       payload[0] = pos;
       std::memcpy(&payload[1], &zero, sizeof(float));
       send_packet_with_payload(cmd, payload);
-      return read_packet1();
+      float val;
+      if (!read_packet1(val)) {
+        // std::cerr << "EPMC SERIAL COMM: Failed to read packet!" << std::endl;
+        return 0.0;
+      }
+      return val;
   }
 
-  float write_data4(uint8_t cmd, float a, float b, float c, float d) {
+  void write_data2(uint8_t cmd, float a, float b) {
+      std::vector<uint8_t> payload(2 * sizeof(float));
+      std::memcpy(&payload[0],  &a, 4);
+      std::memcpy(&payload[4],  &b, 4);
+      send_packet_with_payload(cmd, payload);
+  }
+
+  bool read_data2(uint8_t cmd, float &a, float &b) {
+      send_packet_without_payload(cmd);
+      if (read_packet2(a, b)) 
+        return true;
+      else 
+        return false;
+  }
+
+  void write_data3(uint8_t cmd, float a, float b, float c) {
+      std::vector<uint8_t> payload(3 * sizeof(float));
+      std::memcpy(&payload[0],  &a, 4);
+      std::memcpy(&payload[4],  &b, 4);
+      std::memcpy(&payload[8],  &c, 4);
+      send_packet_with_payload(cmd, payload);
+  }
+
+  bool read_data3(uint8_t cmd, float &a, float &b, float &c) {
+      send_packet_without_payload(cmd);
+      if (read_packet3(a, b, c)) 
+        return true;
+      else 
+        return false;
+  }
+
+  void write_data4(uint8_t cmd, float a, float b, float c, float d) {
       std::vector<uint8_t> payload(4 * sizeof(float));
       std::memcpy(&payload[0],  &a, 4);
       std::memcpy(&payload[4],  &b, 4);
       std::memcpy(&payload[8],  &c, 4);
       std::memcpy(&payload[12], &d, 4);
       send_packet_with_payload(cmd, payload);
-      return read_packet1();
   }
 
-  void read_data3(uint8_t cmd, float &a, float &b, float &c) {
+  bool read_data4(uint8_t cmd, float &a, float &b, float &c, float &d) {
       send_packet_without_payload(cmd);
-      return read_packet3(a, b, c);
+      if (read_packet4(a, b, c, d)) 
+        return true;
+      else 
+        return false;
   }
 
-  void read_data4(uint8_t cmd, float &a, float &b, float &c, float &d) {
+  bool read_data6(uint8_t cmd, float &a, float &b, float &c, float &d, float &e, float &f) {
       send_packet_without_payload(cmd);
-      return read_packet4(a, b, c, d);
+      if (read_packet6(a, b, c, d, e, f)) 
+        return true;
+      else 
+        return false;
   }
 
-  void read_data6(uint8_t cmd, float &a, float &b, float &c, float &d, float &e, float &f) {
+  bool read_data8(uint8_t cmd, float &a, float &b, float &c, float &d, float &e, float &f, float &g, float &h) {
       send_packet_without_payload(cmd);
-      return read_packet6(a, b, c, d, e, f);
+      if (read_packet8(a, b, c, d, e, f, g, h)) 
+        return true;
+      else 
+        return false;
   }
 
-  void read_data8(uint8_t cmd, float &a, float &b, float &c, float &d, float &e, float &f, float &g, float &h) {
+  bool read_data9(uint8_t cmd, float &a, float &b, float &c, float &d, float &e, float &f, float &g, float &h, float &i) {
       send_packet_without_payload(cmd);
-      return read_packet8(a, b, c, d, e, f, g, h);
+      if (read_packet9(a, b, c, d, e, f, g, h, i)) 
+        return true;
+      else 
+        return false;
   }
 
 };

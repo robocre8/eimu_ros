@@ -43,7 +43,7 @@ public:
     /*----------start connection to eimu_driver module---------------*/
     eimu.connect(port);
     // wait for the imu to fully setup
-    for (int i = 1; i <= 2; i += 1)
+    for (int i = 1; i <= 4; i += 1)
     {
       delay_ms(1000);
       RCLCPP_INFO(this->get_logger(), "%d", i);
@@ -93,7 +93,10 @@ private:
   {
     messageImu.header.stamp = rclcpp::Clock().now();
 
-    eimu.readRPY(r, p, y);
+    bool success = eimu.readImuData(r, p, y, ax, ay, az, gz, gy, gz);
+    if (success) {
+
+    }
     
     rpy.vector.x = r;
     rpy.vector.y = p;
