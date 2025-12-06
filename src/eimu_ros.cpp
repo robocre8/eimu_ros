@@ -19,10 +19,15 @@ public:
   {
     /*---------------node parameter declaration-----------------------------*/
     this->declare_parameter<std::string>("frame_id", "imu");
-    this->declare_parameter<std::string>("port", "/dev/ttyUSB0");
+    this->declare_parameter<std::string>("port", "/dev/ttyACM0");
     this->declare_parameter<double>("publish_frequency", 50.0);
-    this->declare_parameter<int>("eimu_reference_frame_id", 1);
+    this->declare_parameter<int>("world_frame_id", 1);
     this->declare_parameter<bool>("publish_tf_on_map_frame", false);
+    this->declare_parameter<bool>("use_static_covariances", false);
+    std::vector<double> default_covariance_values = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    this->declare_parameter("static_covariance_orientation", default_covariance_values);
+    this->declare_parameter("static_covariance_angular_velocity", default_covariance_values);
+    this->declare_parameter("static_covariance_linear_acceleration", default_covariance_values);
 
     frame_id = this->get_parameter("frame_id").as_string();
     RCLCPP_INFO(this->get_logger(), "frame_id: %s", frame_id.c_str());
@@ -33,11 +38,19 @@ public:
     publish_frequency = this->get_parameter("publish_frequency").as_double();
     RCLCPP_INFO(this->get_logger(), "publish_frequency: %f", publish_frequency);
 
-    eimu_reference_frame_id = this->get_parameter("eimu_reference_frame_id").as_int();
-    RCLCPP_INFO(this->get_logger(), "eimu_reference_frame_id: %d", eimu_reference_frame_id);
+    world_frame_id = this->get_parameter("world_frame_id").as_int();
+    RCLCPP_INFO(this->get_logger(), "world_frame_id: %d", world_frame_id);
 
     publish_tf_on_map_frame = this->get_parameter("publish_tf_on_map_frame").as_bool();
     RCLCPP_INFO(this->get_logger(), "publish_tf_on_map_frame: %d", publish_tf_on_map_frame);
+
+    use_static_covariances = this->get_parameter("use_static_covariances").as_bool();
+    RCLCPP_INFO(this->get_logger(), "use_static_covariances: %d", use_static_covariances);
+
+    static_covariance_orientation = this->get_parameter("static_covariance_orientation").as_double_array();
+    static_covariance_angular_velocity = this->get_parameter("static_covariance_angular_velocity").as_double_array();
+    static_covariance_linear_acceleration = this->get_parameter("static_covariance_linear_acceleration").as_double_array();
+    
     /*---------------------------------------------------------------------*/
 
     /*----------start connection to eimu_driver module---------------*/
@@ -49,22 +62,49 @@ public:
       RCLCPP_INFO(this->get_logger(), "%d", i);
     }
 
+    eimu.clearDataBuffer();
+
     filterGain = eimu.getFilterGain();
-    eimu.setWorldFrameId(eimu_reference_frame_id);
-    ref_frame_id = eimu.getWorldFrameId();
+    eimu.setWorldFrameId(world_frame_id);
+    world_frame_id = eimu.getWorldFrameId();
     /*---------------------------------------------------------------------*/
 
     /*----------initialize IMU message---------------*/
     messageImu.header.frame_id = frame_id;
 
-    eimu.readRPYVariance(data_x, data_y, data_z);
-    messageImu.orientation_covariance = {data_x, 0.0, 0.0, 0.0, data_y, 0.0, 0.0, 0.0, data_z};
+    if (use_static_covariances){
+      messageImu.orientation_covariance = {static_covariance_orientation.at(0), 0.0, 0.0, 
+                                           0.0, static_covariance_orientation.at(4), 0.0, 
+                                           0.0, 0.0, static_covariance_orientation.at(8)};
 
-    eimu.readGyroVariance(data_x, data_y, data_z);
-    messageImu.angular_velocity_covariance = {data_x, 0.0, 0.0, 0.0, data_y, 0.0, 0.0, 0.0, data_z};
+      messageImu.angular_velocity_covariance = {static_covariance_angular_velocity.at(0), 0.0, 0.0, 
+                                                0.0, static_covariance_angular_velocity.at(4), 0.0, 
+                                                0.0, 0.0, static_covariance_angular_velocity.at(8)};
 
-    eimu.readAccVariance(data_x, data_y, data_z);
-    messageImu.linear_acceleration_covariance = {data_x, 0.0, 0.0, 0.0, data_y, 0.0, 0.0, 0.0, data_z};
+      messageImu.linear_acceleration_covariance = {static_covariance_linear_acceleration.at(0), 0.0, 0.0, 
+                                                   0.0, static_covariance_linear_acceleration.at(4), 0.0, 
+                                                   0.0, 0.0, static_covariance_linear_acceleration.at(8)};
+
+    } else {
+      eimu.readRPYVariance(data_x, data_y, data_z);
+      messageImu.orientation_covariance = {data_x, 0.0, 0.0,
+                                           0.0, data_y, 0.0,
+                                           0.0, 0.0, data_z};
+
+      eimu.readGyroVariance(data_x, data_y, data_z);
+      messageImu.angular_velocity_covariance = {data_x, 0.0, 0.0,
+                                                0.0, data_y, 0.0,
+                                                0.0, 0.0, data_z};
+
+      eimu.readAccVariance(data_x, data_y, data_z);
+      messageImu.linear_acceleration_covariance = {data_x, 0.0, 0.0,
+                                                   0.0, data_y, 0.0,
+                                                   0.0, 0.0, data_z};
+    }
+
+    RCLCPP_INFO(this->get_logger(), "orientation_covariance: [%f, ..., %f, ..., %f]", messageImu.orientation_covariance[0], messageImu.orientation_covariance[4], messageImu.orientation_covariance[8]);
+    RCLCPP_INFO(this->get_logger(), "angular_velocity_covariance: [%f, ..., %f, ..., %f]", messageImu.angular_velocity_covariance[0], messageImu.angular_velocity_covariance[4], messageImu.angular_velocity_covariance[8]);
+    RCLCPP_INFO(this->get_logger(), "linear_acceleration_covariance: [%f, ..., %f, ..., %f]", messageImu.linear_acceleration_covariance[0], messageImu.linear_acceleration_covariance[4], messageImu.linear_acceleration_covariance[8]);
     /*---------------------------------------------------------------------*/
 
     /*---------------start imu and mag publishers and timer-----------------------------*/
@@ -74,14 +114,13 @@ public:
     // Initialize the transform broadcaster
     tf_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-    eimu.clearDataBuffer();
     timer_ = this->create_wall_timer(
         std::chrono::microseconds((long)(1000000 / publish_frequency)),
         std::bind(&EIMU_ROS::publish_imu_callback, this));
     /*---------------------------------------------------------------------*/
 
     RCLCPP_INFO(this->get_logger(), "eimu_ros node has started with filterGain: %f", filterGain);
-    RCLCPP_INFO(this->get_logger(), "eimu_ros node has started with Reference Frame: %s", ref_frame_list[ref_frame_id].c_str());
+    RCLCPP_INFO(this->get_logger(), "eimu_ros node has started with Reference Frame: %s", world_frame_list[world_frame_id].c_str());
     if (publish_tf_on_map_frame)
     {
       RCLCPP_INFO(this->get_logger(), "imu transform is being published on map-frame for test rviz viewing");
@@ -93,10 +132,7 @@ private:
   {
     messageImu.header.stamp = rclcpp::Clock().now();
 
-    bool success = eimu.readImuData(r, p, y, ax, ay, az, gz, gy, gz);
-    if (success) {
-
-    }
+    eimu.readImuData(r, p, y, ax, ay, az, gz, gy, gz);
     
     rpy.vector.x = r;
     rpy.vector.y = p;
@@ -113,7 +149,6 @@ private:
     messageImu.orientation.y = q.y();
     messageImu.orientation.z = q.z();
 
-    eimu.readAccGyro(ax, ay, az, gx, gy, gz);
     messageImu.angular_velocity.x = gx;
     messageImu.angular_velocity.y = gy;
     messageImu.angular_velocity.z = gz;
@@ -172,15 +207,19 @@ private:
   std::string frame_id;
   std::string port;
   double publish_frequency;
-  int eimu_reference_frame_id;
-  std::vector<std::string> ref_frame_list = {"NWU", "ENU", "NED"}; // (0 - NWU,  1 - ENU,  2 - NED)
+  int world_frame_id;
+  std::vector<std::string> world_frame_list = {"NWU", "ENU", "NED"}; // (0 - NWU,  1 - ENU,  2 - NED)
   bool publish_tf_on_map_frame;
+  bool use_static_covariances;
+  std::vector<double> static_covariance_orientation;
+  std::vector<double> static_covariance_angular_velocity;
+  std::vector<double> static_covariance_linear_acceleration;
+
 
   EIMU eimu;
   float data_x, data_y, data_z;
   float r, p, y, ax, ay, az, gx, gy, gz;
   float filterGain;
-  int ref_frame_id;
 };
 
 int main(int argc, char **argv)
