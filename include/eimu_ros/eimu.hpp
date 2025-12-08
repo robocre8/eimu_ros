@@ -52,6 +52,8 @@ const uint8_t READ_QUAT_RPY = 0x22;
 const uint8_t READ_ACC_GYRO = 0x23;
 const uint8_t CLEAR_DATA_BUFFER = 0x27;
 const uint8_t READ_IMU_DATA = 0x28;
+const uint8_t READ_LIN_ACC_RAW = 0x2B;
+const uint8_t READ_LIN_ACC = 0x2C;
 //---------------------------------------------
 
 LibSerial::BaudRate convert_baud_rate(int baud_rate)
@@ -148,6 +150,22 @@ public:
   void readAcc(float &x, float &y, float &z)
   {
     read_data3(READ_ACC, x, y, z);
+    x = round_to_dp(x, 6);
+    y = round_to_dp(y, 6);
+    z = round_to_dp(z, 6);
+  }
+
+  void readLinearAcc(float &x, float &y, float &z)
+  {
+    read_data3(READ_LIN_ACC, x, y, z);
+    x = round_to_dp(x, 6);
+    y = round_to_dp(y, 6);
+    z = round_to_dp(z, 6);
+  }
+
+  void readLinearAccRaw(float &x, float &y, float &z)
+  {
+    read_data3(READ_LIN_ACC_RAW, x, y, z);
     x = round_to_dp(x, 6);
     y = round_to_dp(y, 6);
     z = round_to_dp(z, 6);
