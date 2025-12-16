@@ -62,11 +62,17 @@ public:
       RCLCPP_INFO(this->get_logger(), "%d", i);
     }
 
-    eimu.clearDataBuffer();
+    // success = eimu.clearDataBuffer();
 
-    filterGain = eimu.getFilterGain();
+    std::tie(success, val0) = eimu.getFilterGain();
+    if (success) 
+      filterGain = val0;
+
     eimu.setWorldFrameId(world_frame_id);
-    world_frame_id = eimu.getWorldFrameId();
+
+    std::tie(success, val0) = eimu.getWorldFrameId();
+    if (success)
+      world_frame_id = val0;
     /*---------------------------------------------------------------------*/
 
     /*----------initialize IMU message---------------*/
@@ -86,17 +92,47 @@ public:
                                                    0.0, 0.0, static_covariance_linear_acceleration.at(8)};
 
     } else {
-      eimu.readRPYVariance(data_x, data_y, data_z);
+      std::tie(success, val0, val1, val2) = eimu.readRPYVariance();
+      if(success){
+        data_x = val0;
+        data_y = val1;
+        data_z = val2;
+      } else {
+        RCLCPP_WARN(this->get_logger(), "WARNING: Could not read IMU orientation variance, defaulting to Static orientation covariance");
+        data_x = static_covariance_orientation.at(0);
+        data_y = static_covariance_orientation.at(4);
+        data_z = static_covariance_orientation.at(8);
+      }
       messageImu.orientation_covariance = {data_x, 0.0, 0.0,
                                            0.0, data_y, 0.0,
                                            0.0, 0.0, data_z};
 
-      eimu.readGyroVariance(data_x, data_y, data_z);
+      std::tie(success, val0, val1, val2) = eimu.readGyroVariance();
+      if(success){
+        data_x = val0;
+        data_y = val1;
+        data_z = val2;
+      } else {
+        RCLCPP_WARN(this->get_logger(), "WARNING: Could not read IMU Gyro variance, defaulting to Static angular vel covariance");
+        data_x = static_covariance_angular_velocity.at(0);
+        data_y = static_covariance_angular_velocity.at(4);
+        data_z = static_covariance_angular_velocity.at(8);
+      }
       messageImu.angular_velocity_covariance = {data_x, 0.0, 0.0,
                                                 0.0, data_y, 0.0,
                                                 0.0, 0.0, data_z};
 
-      eimu.readAccVariance(data_x, data_y, data_z);
+      std::tie(success, val0, val1, val2) = eimu.readAccVariance();
+      if(success){
+        data_x = val0;
+        data_y = val1;
+        data_z = val2;
+      } else {
+        RCLCPP_WARN(this->get_logger(), "WARNING: Could not read IMU acceleration variance, defaulting to Static acceleration covariance");
+        data_x = static_covariance_linear_acceleration.at(0);
+        data_y = static_covariance_linear_acceleration.at(4);
+        data_z = static_covariance_linear_acceleration.at(8);
+      }
       messageImu.linear_acceleration_covariance = {data_x, 0.0, 0.0,
                                                    0.0, data_y, 0.0,
                                                    0.0, 0.0, data_z};
@@ -132,22 +168,37 @@ private:
   {
     messageImu.header.stamp = rclcpp::Clock().now();
 
-    eimu.readImuData(r, p, y, ax, ay, az, gz, gy, gz);
+    std::tie(success, val0, val1, val2, val3, val4, val5, val6, val7, val8) = eimu.readImuData();
+    if (success){
+      r = val0; p = val1; y = val2;
+      ax = val3; ay = val4; az = val5;
+      gx = val6; gy = val7; gz = val8;
+    }
+
+    std::tie(success, val0, val1, val2, val3) = eimu.readQuat();
+    if (success){
+      qw = val0; qx = val1; qy = val2; qz = val3;
+    }
     
     rpy.vector.x = r;
     rpy.vector.y = p;
     rpy.vector.z = y;
 
     // Create TF2 quaternion
-    tf2::Quaternion q;
-    q.setRPY(r, p, y); 
+    // tf2::Quaternion q;
+    // q.setRPY(r, p, y); 
+
+    // messageImu.orientation.w = q.w();
+    // messageImu.orientation.x = q.x();
+    // messageImu.orientation.y = q.y();
+    // messageImu.orientation.z = q.z();
 
     // Fill ROS2 message
-    geometry_msgs::msg::Quaternion q_msg;
-    messageImu.orientation.w = q.w();
-    messageImu.orientation.x = q.x();
-    messageImu.orientation.y = q.y();
-    messageImu.orientation.z = q.z();
+
+    messageImu.orientation.w = qw;
+    messageImu.orientation.x = qx;
+    messageImu.orientation.y = qy;
+    messageImu.orientation.z = qz;
 
     messageImu.angular_velocity.x = gx;
     messageImu.angular_velocity.y = gy;
@@ -218,8 +269,12 @@ private:
 
   EIMU eimu;
   float data_x, data_y, data_z;
+  float qw, qx, qy, qz;
   float r, p, y, ax, ay, az, gx, gy, gz;
   float filterGain;
+
+  bool success;
+  float val0, val1, val2, val3, val4, val5, val6, val7, val8;
 };
 
 int main(int argc, char **argv)
