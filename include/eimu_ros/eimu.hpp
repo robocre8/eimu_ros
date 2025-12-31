@@ -204,7 +204,7 @@ private:
   void send(float cmd, float arg1=0.0, float arg2=0.0, float arg3=0.0)
   {
     std::ostringstream ss;
-    ss << cmd << " " << arg1 << " " << arg2 << " " << arg3 << "\r";
+    ss << cmd << " " << round_to_dp(arg1,6) << " " << round_to_dp(arg2,6) << " " << round_to_dp(arg3,6) << "\r";
 
     serial_conn_.Write(ss.str());
   }
@@ -253,7 +253,7 @@ private:
       }
 
       success = true;
-      return std::make_tuple(success, data1, data2, data3);
+      return std::make_tuple(success, round_to_dp(data1,6), round_to_dp(data2,6), round_to_dp(data3,6));
     }
     catch (...) {
       success = false;
