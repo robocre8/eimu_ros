@@ -19,10 +19,10 @@ public:
   {
     /*---------------node parameter declaration-----------------------------*/
     this->declare_parameter<std::string>("serial_port", "/dev/ttyACM0");
-    this->declare_parameter<int>("serial_baud_rate", 57600);
-    this->declare_parameter<int>("serial_timeout_ms", 10);
+    this->declare_parameter<int>("serial_baud_rate", 115200);
+    this->declare_parameter<int>("serial_timeout_ms", 16);
     this->declare_parameter<std::string>("frame_id", "imu");
-    this->declare_parameter<double>("publish_frequency", 80.0);
+    this->declare_parameter<double>("publish_frequency", 50.0);
     this->declare_parameter<int>("world_frame_id", 1);
     this->declare_parameter<bool>("publish_tf_on_map_frame", false);
     this->declare_parameter<bool>("use_static_covariances", false);
@@ -177,16 +177,19 @@ private:
   {
     messageImu.header.stamp = rclcpp::Clock().now();
 
-    std::tie(success, val0, val1, val2, val3, val4, val5, val6, val7, val8) = eimu.readImuData();
+    std::tie(success, val0, val1, val2) = eimu.readRPY();
     if (success){
       r = val0; p = val1; y = val2;
-      ax = val3; ay = val4; az = val5;
-      gx = val6; gy = val7; gz = val8;
     }
 
-    std::tie(success, val0, val1, val2, val3) = eimu.readQuat();
+    std::tie(success, val0, val1, val2) = eimu.readLinearAcc();
     if (success){
-      qw = val0; qx = val1; qy = val2; qz = val3;
+      ax = val0; ay = val1; az = val2;
+    }
+
+    std::tie(success, val0, val1, val2) = eimu.readGyro();
+    if (success){
+      gx = val0; gy = val1; gz = val2;
     }
     
     rpy.vector.x = r;
@@ -194,20 +197,20 @@ private:
     rpy.vector.z = y;
 
     // Create TF2 quaternion
-    // tf2::Quaternion q;
-    // q.setRPY(r, p, y); 
+    tf2::Quaternion q;
+    q.setRPY(r, p, y); 
 
-    // messageImu.orientation.w = q.w();
-    // messageImu.orientation.x = q.x();
-    // messageImu.orientation.y = q.y();
-    // messageImu.orientation.z = q.z();
+    messageImu.orientation.w = q.w();
+    messageImu.orientation.x = q.x();
+    messageImu.orientation.y = q.y();
+    messageImu.orientation.z = q.z();
 
     // Fill ROS2 message
 
-    messageImu.orientation.w = qw;
-    messageImu.orientation.x = qx;
-    messageImu.orientation.y = qy;
-    messageImu.orientation.z = qz;
+    // messageImu.orientation.w = qw;
+    // messageImu.orientation.x = qx;
+    // messageImu.orientation.y = qy;
+    // messageImu.orientation.z = qz;
 
     messageImu.angular_velocity.x = gx;
     messageImu.angular_velocity.y = gy;
@@ -280,12 +283,11 @@ private:
 
   EIMU eimu;
   float data_x, data_y, data_z;
-  float qw, qx, qy, qz;
   float r, p, y, ax, ay, az, gx, gy, gz;
   float filterGain;
 
   bool success;
-  float val0, val1, val2, val3, val4, val5, val6, val7, val8;
+  float val0, val1, val2;
 };
 
 int main(int argc, char **argv)

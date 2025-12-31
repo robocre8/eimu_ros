@@ -18,25 +18,47 @@ double round_to_dp(double value, int decimal_places) {
 }
 
 // Serial Protocol Command IDs -------------
-const uint8_t START_BYTE = 0xBB;
-const uint8_t READ_QUAT = 0x01;
-const uint8_t READ_RPY = 0x02;
-const uint8_t READ_RPY_VAR = 0x03;
-const uint8_t READ_ACC = 0x05;
-const uint8_t READ_ACC_VAR = 0x09;
-const uint8_t READ_GYRO = 0x0B;
-const uint8_t READ_GYRO_VAR = 0x0F;
-const uint8_t READ_MAG = 0x11;
-const uint8_t SET_FILTER_GAIN = 0x1D;
-const uint8_t GET_FILTER_GAIN = 0x1E;
-const uint8_t SET_FRAME_ID = 0x1F;
-const uint8_t GET_FRAME_ID = 0x20;
-const uint8_t READ_QUAT_RPY = 0x22;
-const uint8_t READ_ACC_GYRO = 0x23;
-const uint8_t CLEAR_DATA_BUFFER = 0x27;
-const uint8_t READ_IMU_DATA = 0x28;
-const uint8_t READ_LIN_ACC_RAW = 0x2B;
-const uint8_t READ_LIN_ACC = 0x2C;
+const int READ_RPY = 10;
+const int READ_RPY_VAR = 11;
+const int WRITE_RPY_VAR = 12;
+
+const int READ_GYRO = 13;
+const int READ_GYRO_RAW = 14;
+const int READ_GYRO_OFF = 15;
+const int WRITE_GYRO_OFF = 16;
+const int READ_GYRO_VAR = 17;
+const int WRITE_GYRO_VAR = 18;
+
+const int READ_ACC = 19;
+const int READ_ACC_RAW = 20;
+const int READ_ACC_OFF = 21;
+const int WRITE_ACC_OFF = 22;
+const int READ_ACC_VAR = 23;
+const int WRITE_ACC_VAR = 24;
+const int READ_LIN_ACC_RAW = 25;
+const int READ_LIN_ACC = 26;
+const int SET_ACC_LPF_CUT_FREQ = 27;
+const int GET_ACC_LPF_CUT_FREQ = 28;
+
+const int READ_MAG = 29;
+const int READ_MAG_RAW = 30;
+const int READ_MAG_H_OFF = 31;
+const int WRITE_MAG_H_OFF = 32;
+const int READ_MAG_S_OFF0 = 33;
+const int WRITE_MAG_S_OFF0 = 34;
+const int READ_MAG_S_OFF1 = 35;
+const int WRITE_MAG_S_OFF1 = 36;
+const int READ_MAG_S_OFF2 = 37;
+const int WRITE_MAG_S_OFF2 = 38;
+
+const int SET_I2C_ADDR = 39;
+const int GET_I2C_ADDR = 40;
+const int SET_FILTER_GAIN = 41;
+const int GET_FILTER_GAIN = 42;
+const int SET_FRAME_ID = 43;
+const int GET_FRAME_ID = 44;
+const int RESET = 45;
+const int CLEAR = 46;
 //---------------------------------------------
 
 LibSerial::BaudRate convert_baud_rate(int baud_rate)
@@ -74,23 +96,19 @@ LibSerial::BaudRate convert_baud_rate(int baud_rate)
   }
 }
 
-
 class EIMU
 {
 
 public:
   EIMU() = default;
 
-  void connect(const std::string &serial_device, int32_t baud_rate = 57600, int32_t timeout_ms = 10)
+  void connect(const std::string &serial_device, int32_t baud_rate = 115200, int32_t timeout_ms = 100)
   {
     try {
       timeout_ms_ = timeout_ms;
       serial_conn_.Open(serial_device);
       serial_conn_.SetBaudRate(convert_baud_rate(baud_rate));
-      serial_conn_.SetCharacterSize(LibSerial::CharacterSize::CHAR_SIZE_8);
-      serial_conn_.SetStopBits(LibSerial::StopBits::STOP_BITS_1);
-      serial_conn_.SetParity(LibSerial::Parity::PARITY_NONE);
-      serial_conn_.SetFlowControl(LibSerial::FlowControl::FLOW_CONTROL_NONE);
+      serial_conn_.FlushIOBuffers();
     } catch (const LibSerial::OpenFailed&) {
         std::cerr << "Failed to open serial port!" << std::endl;
     }
@@ -109,353 +127,144 @@ public:
   bool clearDataBuffer()
   {
     bool success;
-    std::tie(success, std::ignore) = read_data1(CLEAR_DATA_BUFFER);
+    std::tie(success, std::ignore, std::ignore, std::ignore) = recv(CLEAR);
     return success;
   }
 
   void setWorldFrameId(int id)
   {
-    write_data1(SET_FRAME_ID, (float)id);
+    send(SET_FRAME_ID, 0.0, (float)id);
   }
 
   std::tuple<bool, int> getWorldFrameId()
   {
     bool success; float frame_id;
-    std::tie(success, frame_id) = read_data1(GET_FRAME_ID);
+    std::tie(success, frame_id, std::ignore, std::ignore) = recv(GET_FRAME_ID);
     return std::make_tuple(success, (int)frame_id);
   }
 
   void setFilterGain(float gain)
   {
-    write_data1(SET_FILTER_GAIN, gain);
+    send(SET_FILTER_GAIN, 0.0, gain);
   }
 
   std::tuple<bool, float> getFilterGain()
   {
     bool success; float gain;
-    std::tie(success, gain) = read_data1(GET_FILTER_GAIN);
+    std::tie(success, gain, std::ignore, std::ignore) = recv(GET_FILTER_GAIN);
     return std::make_tuple(success, gain);
-  }
-
-  std::tuple<bool, float, float, float, float> readQuat()
-  {
-    bool success; float qw, qx, qy, qz;
-    std::tie(success, qw, qx, qy, qz) = read_data4(READ_QUAT);
-    qw = round_to_dp(qw, 6);
-    qx = round_to_dp(qx, 6);
-    qy = round_to_dp(qy, 6);
-    qz = round_to_dp(qz, 6);
-    return std::make_tuple(success, qw, qx, qy, qz);
   }
 
   std::tuple<bool, float, float, float> readLinearAcc()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = read_data3(READ_LIN_ACC);
-    x = round_to_dp(x, 6);
-    y = round_to_dp(y, 6);
-    z = round_to_dp(z, 6);
+    std::tie(success, x, y, z) = recv(READ_LIN_ACC);
     return std::make_tuple(success, x, y, z);
   }
-
-  // std::tuple<bool, float, float, float> readAcc()
-  // {
-  //   bool success; float x, y, z;
-  //   std::tie(success, x, y, z) = read_data3(READ_ACC);
-  //   x = round_to_dp(x, 6);
-  //   y = round_to_dp(y, 6);
-  //   z = round_to_dp(z, 6);
-  //   return std::make_tuple(success, x, y, z);
-  // }
 
   std::tuple<bool, float, float, float> readGyro()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = read_data3(READ_GYRO);
-    x = round_to_dp(x, 6);
-    y = round_to_dp(y, 6);
-    z = round_to_dp(z, 6);
+    std::tie(success, x, y, z) = recv(READ_GYRO);
     return std::make_tuple(success, x, y, z);
   }
 
   std::tuple<bool, float, float, float> readRPY()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = read_data3(READ_RPY);
-    x = round_to_dp(x, 6);
-    y = round_to_dp(y, 6);
-    z = round_to_dp(z, 6);
+    std::tie(success, x, y, z) = recv(READ_RPY);
     return std::make_tuple(success, x, y, z);
   }
-
-  // std::tuple<bool, float, float, float> readMag()
-  // {
-  //   bool success; float x, y, z;
-  //   std::tie(success, x, y, z) = read_data3(READ_MAG);
-  //   x = round_to_dp(x, 6);
-  //   y = round_to_dp(y, 6);
-  //   z = round_to_dp(z, 6);
-  //   return std::make_tuple(success, x, y, z);
-  // }
 
   std::tuple<bool, float, float, float> readAccVariance()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = read_data3(READ_ACC_VAR);
-    x = round_to_dp(x, 6);
-    y = round_to_dp(y, 6);
-    z = round_to_dp(z, 6);
+    std::tie(success, x, y, z) = recv(READ_ACC_VAR);
     return std::make_tuple(success, x, y, z);
   }
 
   std::tuple<bool, float, float, float> readGyroVariance()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = read_data3(READ_GYRO_VAR);
-    x = round_to_dp(x, 6);
-    y = round_to_dp(y, 6);
-    z = round_to_dp(z, 6);
+    std::tie(success, x, y, z) = recv(READ_GYRO_VAR);
     return std::make_tuple(success, x, y, z);
   }
 
   std::tuple<bool, float, float, float> readRPYVariance()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = read_data3(READ_RPY_VAR);
-    x = round_to_dp(x, 6);
-    y = round_to_dp(y, 6);
-    z = round_to_dp(z, 6);
+    std::tie(success, x, y, z) = recv(READ_RPY_VAR);
     return std::make_tuple(success, x, y, z);
   }
-
-  std::tuple<bool, float, float, float, float, float, float> readAccGyro()
-  {
-    bool success; float ax, ay, az, gx, gy, gz;
-    std::tie(success, ax, ay, az, gx, gy, gz) = read_data6(READ_ACC_GYRO);
-    ax = round_to_dp(ax, 6);
-    ay = round_to_dp(ay, 6);
-    az = round_to_dp(az, 6);
-    gx = round_to_dp(gx, 6);
-    gy = round_to_dp(gy, 6);
-    gz = round_to_dp(gz, 6);
-    return std::make_tuple(success, ax, ay, az, gx, gy, gz);
-  }
-
-  std::tuple<bool, float, float, float, float, float, float, float, float, float> readImuData()
-  {
-    bool success; float r, p, y, ax, ay, az, gx, gy, gz;
-    std::tie(success, r, p, y, ax, ay, az, gx, gy, gz) = read_data9(READ_IMU_DATA);
-    r = round_to_dp(r, 6);
-    p = round_to_dp(p, 6);
-    y = round_to_dp(y, 6);
-    ax = round_to_dp(ax, 6);
-    ay = round_to_dp(ay, 6);
-    az = round_to_dp(az, 6);
-    gx = round_to_dp(gx, 6);
-    gy = round_to_dp(gy, 6);
-    gz = round_to_dp(gz, 6);
-    return std::make_tuple(success, r, p, y, ax, ay, az, gx, gy, gz);
-  }
-
 
 private:
   LibSerial::SerialPort serial_conn_;
   int timeout_ms_;
 
-  uint8_t calcChecksum(const std::vector<uint8_t>& packet) {
-    uint32_t sum = 0;
-    for (auto b : packet) sum += b;
-    return sum & 0xFF;
+  void send(float cmd, float arg1=0.0, float arg2=0.0, float arg3=0.0)
+  {
+    std::ostringstream ss;
+    ss << cmd << " " << arg1 << " " << arg2 << " " << arg3 << "\r";
+
+    serial_conn_.Write(ss.str());
   }
 
-  void send_packet_without_payload(uint8_t cmd) {
-    uint8_t len = 0;
-    std::vector<uint8_t> packet = {START_BYTE, cmd, len}; // no payload
-    uint8_t checksum = calcChecksum(packet);
-    packet.push_back(checksum);
-    serial_conn_.Write(packet);
-    // serial_conn_.DrainWriteBuffer();
-  }
+  std::tuple<bool, float, float, float> recv(float cmd, float arg1=0.0)
+  {
+    bool success;
+    float data1, data2, data3;
+    try {
+      // Send request
+      send(cmd, arg1);
 
-  void send_packet_with_payload(uint8_t cmd, const std::vector<uint8_t>& payload) {
-    std::vector<uint8_t> packet = {START_BYTE, cmd, (uint8_t)payload.size()};
-    packet.insert(packet.end(), payload.begin(), payload.end());
-    uint8_t checksum = calcChecksum(packet);
-    packet.push_back(checksum);
-    serial_conn_.Write(packet);
-    // serial_conn_.DrainWriteBuffer();
-  }
+      // Read response line (terminated by '\n')
+      std::string line;
+      serial_conn_.ReadLine(line, '\n');
 
-  std::tuple<bool, float> read_packet1() {
-    std::vector<uint8_t> payload;
-    float val;
-    try
-    {
-      serial_conn_.Read(payload, 4, timeout_ms_);
-      if (payload.size() < 4) {
-        // std::cerr << "[EPMC SERIAL ERROR]: Timeout while reading 1 values" << std::endl;
-        return std::make_tuple(false, 0.0);
+      // Convert using strtof (robust & locale-safe)
+      char* ptr = line.data();
+      char* end;
+
+      data1 = strtof(ptr, &end);
+      if (ptr == end) {
+        success = false;
+        data1 = 0.0f;
+        data2 = 0.0f;
+        data3 = 0.0f;
+        return std::make_tuple(success, data1, data2, data3);
       }
-      std::memcpy(&val, payload.data(), sizeof(float)); // little-endian assumed
-      return std::make_tuple(true, val);
-    }
-    catch(const LibSerial::ReadTimeout &e)
-    {
-      // std::cerr << "[LIB SERIAL ERROR]: ReadTimeout" << std::endl;
-      return std::make_tuple(false, 0.0);
-    }
-  }
 
-  std::tuple<bool, float, float, float> read_packet3() {
-    std::vector<uint8_t> payload;
-    float val0, val1, val2;
-    try
-    {
-      serial_conn_.Read(payload, 12, timeout_ms_);
-      if (payload.size() < 12) {
-        // std::cerr << "[EPMC SERIAL ERROR]: Timeout while reading 3 values" << std::endl;
-        return std::make_tuple(false, 0.0, 0.0, 0.0);
+      data2 = strtof(end, &end);
+      if (ptr == end){
+        success = false;
+        data1 = 0.0f;
+        data2 = 0.0f;
+        data3 = 0.0f;
+        return std::make_tuple(success, data1, data2, data3);
       }
-      std::memcpy(&val0, payload.data() + 0, sizeof(float));
-      std::memcpy(&val1, payload.data() + 4, sizeof(float));
-      std::memcpy(&val2, payload.data() + 8, sizeof(float));
-      return std::make_tuple(true, val0, val1, val2);
-    }
-    catch(const LibSerial::ReadTimeout &e)
-    {
-      // std::cerr << "[LIB SERIAL ERROR]: ReadTimeout" << std::endl;
-      return std::make_tuple(false, 0.0, 0.0, 0.0);
-    }
-  }
 
-  std::tuple<bool, float, float, float, float> read_packet4() {
-    std::vector<uint8_t> payload;
-    float val0, val1, val2, val3;
-    try
-    {
-      serial_conn_.Read(payload, 16, timeout_ms_);
-      if (payload.size() < 16) {
-        // std::cerr << "[EPMC SERIAL ERROR]: Timeout while reading 4 values" << std::endl;
-        return std::make_tuple(false, 0.0, 0.0, 0.0, 0.0);
+      data3 = strtof(end, &end);
+      if (ptr == end){
+        success = false;
+        data1 = 0.0f;
+        data2 = 0.0f;
+        data3 = 0.0f;
+        return std::make_tuple(success, data1, data2, data3);
       }
-      std::memcpy(&val0, payload.data() + 0, sizeof(float));
-      std::memcpy(&val1, payload.data() + 4, sizeof(float));
-      std::memcpy(&val2, payload.data() + 8, sizeof(float));
-      std::memcpy(&val3, payload.data() + 12, sizeof(float));
-      return std::make_tuple(true, val0, val1, val2, val3);
-    }
-    catch(const LibSerial::ReadTimeout &e)
-    {
-      // std::cerr << "[LIB SERIAL ERROR]: ReadTimeout" << std::endl;
-      return std::make_tuple(false, 0.0, 0.0, 0.0, 0.0);
-    }  
-  }
 
-  std::tuple<bool, float, float, float, float, float, float> read_packet6() {
-    std::vector<uint8_t> payload;
-    float val0, val1, val2, val3, val4, val5;
-    try
-    {
-      serial_conn_.Read(payload, 24, timeout_ms_);
-      if (payload.size() < 24) {
-        // std::cerr << "[EPMC SERIAL ERROR]: Timeout while reading 6 values" << std::endl;
-        return std::make_tuple(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-      }
-      std::memcpy(&val0, payload.data() + 0, sizeof(float));
-      std::memcpy(&val1, payload.data() + 4, sizeof(float));
-      std::memcpy(&val2, payload.data() + 8, sizeof(float));
-      std::memcpy(&val3, payload.data() + 12, sizeof(float));
-      std::memcpy(&val4, payload.data() + 16, sizeof(float));
-      std::memcpy(&val5, payload.data() + 20, sizeof(float));
-      return std::make_tuple(true, val0, val1, val2, val3, val4, val5);
+      success = true;
+      return std::make_tuple(success, data1, data2, data3);
     }
-    catch(const LibSerial::ReadTimeout &e)
-    {
-      // std::cerr << "[LIB SERIAL ERROR]: ReadTimeout" << std::endl;
-      return std::make_tuple(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    catch (...) {
+      success = false;
+      data1 = 0.0f;
+      data2 = 0.0f;
+      data3 = 0.0f;
+      // serial_conn_.FlushIOBuffers();
+      return std::make_tuple(success, data1, data2, data3);
     }
   }
 
-  std::tuple<bool, float, float, float, float, float, float, float, float, float> read_packet9() {
-    std::vector<uint8_t> payload;
-    float val0, val1, val2, val3, val4, val5, val6, val7, val8;
-    try
-    {
-      serial_conn_.Read(payload, 36, timeout_ms_);
-      if (payload.size() < 36) {
-        // std::cerr << "[EPMC SERIAL ERROR]: Timeout while reading 9 values" << std::endl;
-        return std::make_tuple(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-      }
-      std::memcpy(&val0, payload.data() + 0, sizeof(float));
-      std::memcpy(&val1, payload.data() + 4, sizeof(float));
-      std::memcpy(&val2, payload.data() + 8, sizeof(float));
-      std::memcpy(&val3, payload.data() + 12, sizeof(float));
-      std::memcpy(&val4, payload.data() + 16, sizeof(float));
-      std::memcpy(&val5, payload.data() + 20, sizeof(float));
-      std::memcpy(&val6, payload.data() + 24, sizeof(float));
-      std::memcpy(&val7, payload.data() + 28, sizeof(float));
-      std::memcpy(&val8, payload.data() + 32, sizeof(float));
-      return std::make_tuple(true, val0, val1, val2, val3, val4, val5, val6, val7, val8);
-    }
-    catch(const LibSerial::ReadTimeout &e)
-    {
-      // std::cerr << "[LIB SERIAL ERROR]: ReadTimeout" << std::endl;
-      return std::make_tuple(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    }
-  }
-
-  // ------------------- High-Level Wrappers -------------------
-  void write_data1(uint8_t cmd, float val, uint8_t pos=100) {
-      std::vector<uint8_t> payload(sizeof(uint8_t) + sizeof(float));
-      payload[0] = pos;
-      std::memcpy(&payload[1], &val, sizeof(float));
-      send_packet_with_payload(cmd, payload);
-  }
-
-  void write_data3(uint8_t cmd, float a, float b, float c) {
-      std::vector<uint8_t> payload(3 * sizeof(float));
-      std::memcpy(&payload[0],  &a, sizeof(float));
-      std::memcpy(&payload[4],  &b, sizeof(float));
-      std::memcpy(&payload[8],  &c, sizeof(float));
-      send_packet_with_payload(cmd, payload);
-  }
-
-  std::tuple<bool, float> read_data1(uint8_t cmd, uint8_t pos=100) {
-      std::vector<uint8_t> payload(sizeof(uint8_t) + sizeof(float));
-      payload[0] = pos;
-      send_packet_with_payload(cmd, payload);
-      bool success; float val;
-      std::tie(success, val) = read_packet1();
-      return std::make_tuple(success, val);
-  }
-
-  std::tuple<bool, float, float, float> read_data3(uint8_t cmd) {
-      send_packet_without_payload(cmd);
-      bool success; float a, b, c;
-      std::tie(success, a, b, c) = read_packet3();
-      return std::make_tuple(success, a, b, c);
-  }
-
-  std::tuple<bool, float, float, float, float> read_data4(uint8_t cmd) {
-      send_packet_without_payload(cmd);
-      bool success; float a, b, c, d;
-      std::tie(success, a, b, c, d) = read_packet4();
-      return std::make_tuple(success, a, b, c, d);
-  }
-
-  std::tuple<bool, float, float, float, float, float, float> read_data6(uint8_t cmd) {
-      send_packet_without_payload(cmd);
-      bool success; float a, b, c, d, e, f;
-      std::tie(success, a, b, c, d, e, f) = read_packet6();
-      return std::make_tuple(success, a, b, c, d, e, f);
-  }
-
-  std::tuple<bool, float, float, float, float, float, float, float, float, float> read_data9(uint8_t cmd) {
-      send_packet_without_payload(cmd);
-      bool success; float a, b, c, d, e, f, g, h, i;
-      std::tie(success, a, b, c, d, e, f, g, h, i) = read_packet9();
-      return std::make_tuple(success, a, b, c, d, e, f, g, h, i);
-  }
 
 };
 
