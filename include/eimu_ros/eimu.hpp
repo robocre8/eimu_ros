@@ -127,73 +127,73 @@ public:
   bool clearDataBuffer()
   {
     bool success;
-    std::tie(success, std::ignore, std::ignore, std::ignore) = recv(CLEAR);
+    std::tie(success, std::ignore, std::ignore, std::ignore) = recv((float)CLEAR);
     return success;
   }
 
   void setWorldFrameId(int id)
   {
-    send(SET_FRAME_ID, 0.0, (float)id);
+    send((float)SET_FRAME_ID, 0.0, (float)id);
   }
 
   std::tuple<bool, int> getWorldFrameId()
   {
     bool success; float frame_id;
-    std::tie(success, frame_id, std::ignore, std::ignore) = recv(GET_FRAME_ID);
+    std::tie(success, frame_id, std::ignore, std::ignore) = recv((float)GET_FRAME_ID);
     return std::make_tuple(success, (int)frame_id);
   }
 
   void setFilterGain(float gain)
   {
-    send(SET_FILTER_GAIN, 0.0, gain);
+    send((float)SET_FILTER_GAIN, 0.0, gain);
   }
 
   std::tuple<bool, float> getFilterGain()
   {
     bool success; float gain;
-    std::tie(success, gain, std::ignore, std::ignore) = recv(GET_FILTER_GAIN);
+    std::tie(success, gain, std::ignore, std::ignore) = recv((float)GET_FILTER_GAIN);
     return std::make_tuple(success, gain);
   }
 
   std::tuple<bool, float, float, float> readLinearAcc()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = recv(READ_LIN_ACC);
+    std::tie(success, x, y, z) = recv((float)READ_LIN_ACC);
     return std::make_tuple(success, x, y, z);
   }
 
   std::tuple<bool, float, float, float> readGyro()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = recv(READ_GYRO);
+    std::tie(success, x, y, z) = recv((float)READ_GYRO);
     return std::make_tuple(success, x, y, z);
   }
 
   std::tuple<bool, float, float, float> readRPY()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = recv(READ_RPY);
+    std::tie(success, x, y, z) = recv((float)READ_RPY);
     return std::make_tuple(success, x, y, z);
   }
 
   std::tuple<bool, float, float, float> readAccVariance()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = recv(READ_ACC_VAR);
+    std::tie(success, x, y, z) = recv((float)READ_ACC_VAR);
     return std::make_tuple(success, x, y, z);
   }
 
   std::tuple<bool, float, float, float> readGyroVariance()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = recv(READ_GYRO_VAR);
+    std::tie(success, x, y, z) = recv((float)READ_GYRO_VAR);
     return std::make_tuple(success, x, y, z);
   }
 
   std::tuple<bool, float, float, float> readRPYVariance()
   {
     bool success; float x, y, z;
-    std::tie(success, x, y, z) = recv(READ_RPY_VAR);
+    std::tie(success, x, y, z) = recv((float)READ_RPY_VAR);
     return std::make_tuple(success, x, y, z);
   }
 
