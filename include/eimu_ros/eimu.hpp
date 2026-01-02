@@ -124,6 +124,10 @@ public:
     return serial_conn_.IsOpen();
   }
 
+  //---------------------------------------------------------------------
+  //          BASIC COMMANDS
+  //---------------------------------------------------------------------
+
   bool clearDataBuffer()
   {
     bool success;
@@ -153,6 +157,18 @@ public:
     bool success; float gain;
     std::tie(success, gain, std::ignore, std::ignore) = recv((float)GET_FILTER_GAIN);
     return std::make_tuple(success, gain);
+  }
+
+  void setAccFilterCF(float cf)
+  {
+    send((float)SET_ACC_LPF_CUT_FREQ, 0.0, cf);
+  }
+
+  std::tuple<bool, float> getAccFilterCF()
+  {
+    bool success; float cf;
+    std::tie(success, cf, std::ignore, std::ignore) = recv((float)GET_ACC_LPF_CUT_FREQ);
+    return std::make_tuple(success, cf);
   }
 
   std::tuple<bool, float, float, float> readLinearAcc()
@@ -196,6 +212,165 @@ public:
     std::tie(success, x, y, z) = recv((float)READ_RPY_VAR);
     return std::make_tuple(success, x, y, z);
   }
+
+  //---------------------------------------------------------------------
+  //          ADVANCED COMMANDS (USE WITH CAUTION)
+  //---------------------------------------------------------------------
+
+  void setI2cAddress(int addr)
+  {
+    send((float)SET_I2C_ADDR, 0.0, (float)addr);
+  }
+
+  std::tuple<bool, int> getI2cAddress()
+  {
+    bool success; float addr;
+    std::tie(success, addr, std::ignore, std::ignore) = recv((float)GET_I2C_ADDR);
+    return std::make_tuple(success, (int)addr);
+  }
+
+  bool resetAllParams()
+  {
+    bool success;
+    std::tie(success, std::ignore, std::ignore, std::ignore) = recv((float)RESET);
+    return success;
+  }
+
+  void writeRPYVariance(float x, float y, float z)
+  {
+    send((float)WRITE_RPY_VAR, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readAcc()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_ACC);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readMag()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_MAG);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readLinearAccRaw()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_LIN_ACC_RAW);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readAccRaw()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_ACC_RAW);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readAccOffset()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_ACC_OFF);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  void writeAccOffset(float x, float y, float z)
+  {
+    send((float)WRITE_ACC_OFF, x, y, z);
+  }
+
+  void writeAccVariance(float x, float y, float z)
+  {
+    send((float)WRITE_ACC_VAR, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readGyroRaw()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_GYRO_RAW);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readGyroOffset()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_GYRO_OFF);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  void writeGyroOffset(float x, float y, float z)
+  {
+    send((float)WRITE_GYRO_OFF, x, y, z);
+  }
+
+  void writeGyroVariance(float x, float y, float z)
+  {
+    send((float)WRITE_GYRO_VAR, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readMagRaw()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_MAG_RAW);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readMagHardOffset()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_MAG_H_OFF);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  void writeMagHardOffset(float x, float y, float z)
+  {
+    send((float)WRITE_MAG_H_OFF, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readMagSoftOffset0()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_MAG_S_OFF0);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  void writeMagSoftOffset0(float x, float y, float z)
+  {
+    send((float)WRITE_MAG_S_OFF0, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readMagSoftOffset1()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_MAG_S_OFF1);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  void writeMagSoftOffset1(float x, float y, float z)
+  {
+    send((float)WRITE_MAG_S_OFF1, x, y, z);
+  }
+
+  std::tuple<bool, float, float, float> readMagSoftOffset2()
+  {
+    bool success; float x, y, z;
+    std::tie(success, x, y, z) = recv((float)READ_MAG_S_OFF2);
+    return std::make_tuple(success, x, y, z);
+  }
+
+  void writeMagSoftOffset2(float x, float y, float z)
+  {
+    send((float)WRITE_MAG_S_OFF2, x, y, z);
+  }
+
+  //---------------------------------------------------------------------
+
+
+
+
+
 
 private:
   LibSerial::SerialPort serial_conn_;
