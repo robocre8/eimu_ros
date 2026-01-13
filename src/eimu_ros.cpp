@@ -18,8 +18,10 @@ public:
   EIMU_ROS() : Node("eimu_ros")
   {
     /*---------------node parameter declaration-----------------------------*/
+    this->declare_parameter<std::string>("serial_port", "/dev/ttyACM0");
+    this->declare_parameter<int>("serial_baud_rate", 115200);
+    this->declare_parameter<int>("serial_timeout_ms", 16);
     this->declare_parameter<std::string>("frame_id", "imu");
-    this->declare_parameter<std::string>("port", "/dev/ttyACM0");
     this->declare_parameter<double>("publish_frequency", 50.0);
     this->declare_parameter<int>("world_frame_id", 1);
     this->declare_parameter<bool>("publish_tf_on_map_frame", false);
@@ -29,11 +31,17 @@ public:
     this->declare_parameter("static_covariance_angular_velocity", default_covariance_values);
     this->declare_parameter("static_covariance_linear_acceleration", default_covariance_values);
 
+    serial_port = this->get_parameter("serial_port").as_string();
+    RCLCPP_INFO(this->get_logger(), "serial_port: %s", serial_port.c_str());
+
+    serial_baud_rate = this->get_parameter("serial_baud_rate").as_int();
+    RCLCPP_INFO(this->get_logger(), "serial_baud_rate: %d", serial_baud_rate);
+
+    serial_timeout_ms = this->get_parameter("serial_timeout_ms").as_int();
+    RCLCPP_INFO(this->get_logger(), "serial_timeout_ms: %d", serial_timeout_ms);
+
     frame_id = this->get_parameter("frame_id").as_string();
     RCLCPP_INFO(this->get_logger(), "frame_id: %s", frame_id.c_str());
-
-    port = this->get_parameter("port").as_string();
-    RCLCPP_INFO(this->get_logger(), "port: %s", port.c_str());
 
     publish_frequency = this->get_parameter("publish_frequency").as_double();
     RCLCPP_INFO(this->get_logger(), "publish_frequency: %f", publish_frequency);
@@ -54,7 +62,8 @@ public:
     /*---------------------------------------------------------------------*/
 
     /*----------start connection to eimu_driver module---------------*/
-    eimu.connect(port);
+    eimu.connect(serial_port, serial_baud_rate, serial_timeout_ms);
+
     // wait for the imu to fully setup
     for (int i = 1; i <= 4; i += 1)
     {
@@ -163,6 +172,7 @@ public:
     }
   }
 
+
 private:
   void publish_imu_callback()
   {
@@ -175,30 +185,25 @@ private:
       gx = val6; gy = val7; gz = val8;
     }
 
-    std::tie(success, val0, val1, val2, val3) = eimu.readQuat();
-    if (success){
-      qw = val0; qx = val1; qy = val2; qz = val3;
-    }
-    
     rpy.vector.x = r;
     rpy.vector.y = p;
     rpy.vector.z = y;
 
     // Create TF2 quaternion
-    // tf2::Quaternion q;
-    // q.setRPY(r, p, y); 
+    tf2::Quaternion q;
+    q.setRPY(r, p, y); 
 
-    // messageImu.orientation.w = q.w();
-    // messageImu.orientation.x = q.x();
-    // messageImu.orientation.y = q.y();
-    // messageImu.orientation.z = q.z();
+    messageImu.orientation.w = q.w();
+    messageImu.orientation.x = q.x();
+    messageImu.orientation.y = q.y();
+    messageImu.orientation.z = q.z();
 
     // Fill ROS2 message
 
-    messageImu.orientation.w = qw;
-    messageImu.orientation.x = qx;
-    messageImu.orientation.y = qy;
-    messageImu.orientation.z = qz;
+    // messageImu.orientation.w = qw;
+    // messageImu.orientation.x = qx;
+    // messageImu.orientation.y = qy;
+    // messageImu.orientation.z = qz;
 
     messageImu.angular_velocity.x = gx;
     messageImu.angular_velocity.y = gy;
@@ -255,8 +260,10 @@ private:
   geometry_msgs::msg::Vector3Stamped rpy;
   std::unique_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;
 
+  std::string serial_port;
+  int serial_baud_rate;
+  int serial_timeout_ms;
   std::string frame_id;
-  std::string port;
   double publish_frequency;
   int world_frame_id;
   std::vector<std::string> world_frame_list = {"NWU", "ENU", "NED"}; // (0 - NWU,  1 - ENU,  2 - NED)
