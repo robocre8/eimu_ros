@@ -28,10 +28,8 @@ ament_target_dependencies(eimu_ros PUBLIC
   tf2
   tf2_ros)
 
-find_package(eimu_serial REQUIRED
-  PATHS /opt/eimu_serial/lib/cmake/eimu_serial
-)
-target_link_libraries(eimu_ros PRIVATE eimu_serial::eimu_serial)
+find_package(eimu_serial REQUIRED)
+target_link_libraries(eimu_ros PUBLIC eimu_serial::eimu_serial)
 
 install(
   DIRECTORY include/
