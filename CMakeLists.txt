@@ -15,17 +15,23 @@ find_package(tf2_ros REQUIRED)
 
 
 add_executable(eimu_ros src/eimu_ros.cpp)
-target_include_directories(eimu_ros PUBLIC
-$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-$<INSTALL_INTERFACE:include/${PROJECT_NAME}>
-)
-ament_target_dependencies(eimu_ros
+
+# target_include_directories(eimu_ros PUBLIC
+# $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+# $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+# )
+
+ament_target_dependencies(eimu_ros PUBLIC
   rclcpp
   geometry_msgs
   sensor_msgs
   tf2
   tf2_ros)
-target_link_libraries(eimu_ros serial)
+
+find_package(eimu_serial REQUIRED
+  PATHS /opt/eimu_serial/lib/cmake/eimu_serial
+)
+target_link_libraries(eimu_ros PRIVATE eimu_serial::eimu_serial)
 
 install(
   DIRECTORY include/
