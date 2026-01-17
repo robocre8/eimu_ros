@@ -5,7 +5,7 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2/LinearMath/Matrix3x3.h"
 #include "tf2/LinearMath/Quaternion.h"
-#include "eimu_ros/eimu.hpp"
+#include <eimu_serial/eimu_serial.hpp>
 
 void delay_ms(unsigned long milliseconds)
 {
@@ -62,7 +62,7 @@ public:
     /*---------------------------------------------------------------------*/
 
     /*----------start connection to eimu_driver module---------------*/
-    eimu.connect(serial_port, serial_baud_rate, serial_timeout_ms);
+    imu.connect(serial_port, serial_baud_rate, serial_timeout_ms);
 
     // wait for the imu to fully setup
     for (int i = 1; i <= 4; i += 1)
@@ -71,15 +71,15 @@ public:
       RCLCPP_INFO(this->get_logger(), "%d", i);
     }
 
-    // success = eimu.clearDataBuffer();
+    // success = imu.clearDataBuffer();
 
-    std::tie(success, val0) = eimu.getFilterGain();
+    std::tie(success, val0) = imu.getFilterGain();
     if (success) 
       filterGain = val0;
 
-    eimu.setWorldFrameId(world_frame_id);
+    imu.setWorldFrameId(world_frame_id);
 
-    std::tie(success, val0) = eimu.getWorldFrameId();
+    std::tie(success, val0) = imu.getWorldFrameId();
     if (success)
       world_frame_id = val0;
     /*---------------------------------------------------------------------*/
@@ -101,7 +101,7 @@ public:
                                                    0.0, 0.0, static_covariance_linear_acceleration.at(8)};
 
     } else {
-      std::tie(success, val0, val1, val2) = eimu.readRPYVariance();
+      std::tie(success, val0, val1, val2) = imu.readRPYVariance();
       if(success){
         data_x = val0;
         data_y = val1;
@@ -116,7 +116,7 @@ public:
                                            0.0, data_y, 0.0,
                                            0.0, 0.0, data_z};
 
-      std::tie(success, val0, val1, val2) = eimu.readGyroVariance();
+      std::tie(success, val0, val1, val2) = imu.readGyroVariance();
       if(success){
         data_x = val0;
         data_y = val1;
@@ -131,7 +131,7 @@ public:
                                                 0.0, data_y, 0.0,
                                                 0.0, 0.0, data_z};
 
-      std::tie(success, val0, val1, val2) = eimu.readAccVariance();
+      std::tie(success, val0, val1, val2) = imu.readAccVariance();
       if(success){
         data_x = val0;
         data_y = val1;
@@ -177,7 +177,7 @@ private:
   {
     messageImu.header.stamp = rclcpp::Clock().now();
 
-    std::tie(success, val0, val1, val2, val3, val4, val5, val6, val7, val8) = eimu.readImuData();
+    std::tie(success, val0, val1, val2, val3, val4, val5, val6, val7, val8) = imu.readImuData();
     if (success){
       r = val0; p = val1; y = val2;
       ax = val3; ay = val4; az = val5;
@@ -273,7 +273,7 @@ private:
   std::vector<double> static_covariance_linear_acceleration;
 
 
-  EIMU eimu;
+  eimu_serial::EIMUSerialClient imu;
   float data_x, data_y, data_z;
   float qw, qx, qy, qz;
   float r, p, y, ax, ay, az, gx, gy, gz;
