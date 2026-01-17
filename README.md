@@ -11,7 +11,7 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
 
 - install the eimu-serial-dev `.deb` file
   ```shell
-    sudo apt install ../eimu-serial-dev_<version>_amd64.deb
+    sudo apt install ./eimu-serial-dev_<version>_amd64.deb
   ```
 
 - install `rosdep` so you can install necessary ros related dependencies for the package (if you have not).
