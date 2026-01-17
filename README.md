@@ -27,7 +27,7 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
 ## How to Use the Package
 - cd into the **`src/`** folder of your **`ros workspace`** and clone the repo
   ```shell
-  git clone https://github.com/robocre8/eimu_ros.git
+  git clone -b jazzy https://github.com/robocre8/eimu_ros.git
   ```
 
 - from the **`src/`** folder, cd into the root directory of your **`ros workspace`** and run rosdep to install all necessary ros dependencies
