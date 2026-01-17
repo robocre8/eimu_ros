@@ -31,10 +31,10 @@ ament_target_dependencies(eimu_ros PUBLIC
 find_package(eimu_serial REQUIRED)
 target_link_libraries(eimu_ros PUBLIC eimu_serial::eimu_serial)
 
-install(
-  DIRECTORY include/
-  DESTINATION include/${PROJECT_NAME}
-)
+# install(
+#   DIRECTORY include/
+#   DESTINATION include/${PROJECT_NAME}
+# )
 
 install(TARGETS
   eimu_ros
