@@ -6,24 +6,24 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
 
 #
 
-## install dependecies eimu-serial-dev and rosdep
+## install dependecies libserial and eimu_serial package
+- install the libserial-dev and pkg-config package
+  > sudo apt-get update
+  >
+  > sudo apt install libserial-dev pkg-config
 
-- download and install the eimu-serial-dev pkg. you can also check the [release](https://github.com/robocre8/eimu_serial_cpp/releases/)
+- in your home dir or any prefered directory
+  ```shell
+    git clone https://github.com/robocre8/eimu_serial_cpp.git
 
-**PC (AMD64)**
-```shell
-wget https://github.com/robocre8/eimu_serial_cpp/releases/download/v1.2.0/eimu-serial-dev_1.2.0_amd64.deb
-```
-```shell
-sudo apt install ./eimu-serial-dev_1.2.0_amd64.deb
-```
-**Raspberry Pi (ARM64)**
-```shell
-wget https://github.com/robocre8/eimu_serial_cpp/releases/download/v1.2.0/eimu-serial-dev_1.2.0_arm64.deb
-```
-```shell
-sudo apt install ./eimu-serial-dev_1.2.0_arm64.deb
-```
+    cd eimu_serial_cpp
+
+    cmake -B build -DCMAKE_INSTALL_PREFIX=/opt/eimu_serial
+
+    cmake --build build
+
+    sudo cmake --install build
+  ```
 
 - install `rosdep` so you can install necessary ros related dependencies for the package (if you have not).
   ```shell

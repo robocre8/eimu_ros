@@ -64,13 +64,6 @@ public:
     /*----------start connection to eimu_driver module---------------*/
     imu.connect(serial_port, serial_baud_rate, serial_timeout_ms);
 
-    // wait for the imu to fully setup
-    for (int i = 1; i <= 4; i += 1)
-    {
-      delay_ms(1000);
-      RCLCPP_INFO(this->get_logger(), "%d", i);
-    }
-
     // success = imu.clearDataBuffer();
 
     std::tie(success, val0) = imu.getFilterGain();
