@@ -10,14 +10,22 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
 - install the `libserial-dev` package on your linux machine
   ```shell
   sudo apt-get update
+  ```
+  ```shell
   sudo apt install libserial-dev
   ```
 
 - install `rosdep` so you can install necessary ros related dependencies for the package (if you have not).
   ```shell
   sudo apt-get update
+  ```
+  ```shell
   sudo apt install python3-rosdep
+  ```
+  ```shell
   sudo rosdep init
+  ```
+  ```shell
   rosdep update
   ```
 
@@ -37,17 +45,10 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
   colcon build --packages-select eimu_ros --symlink-install
   ```
 - before you start running the package, connect the **`Easy IMU Module`** to the Computer (PC or microcomputer) and check its serial port:
-  > The best way to select the right serial port (if you are using multiple serial devices) is to select by path
   ```shell
-  ls /dev/serial/by-path
+  ls /dev/ttyA*
   ```
-  > You should see a value printed on the terminal (if the driver is connected and seen by the computer), your serial port would be -> **/dev/serial/by-path/[value]**. for more info visit this tutorial from [ArticulatedRobotics](https://www.youtube.com/watch?v=eJZXRncGaGM&list=PLunhqkrRNRhYAffV8JDiFOatQXuU-NnxT&index=8)
-
-  - OR you can also try this:
-  ```shell
-  ls /dev/ttyU*
-  ```
-  > you should see **/dev/ttyUSB0** or **/dev/ttyUSB1** and so on
+  > you should see **/dev/ttyACM0** or **/dev/ttyACM1** and so on
 
 - go to the `config` folder inside the **`eimu_ros`** package folder. You'll see two params file. Change the serial port value to that found in the previous step. You don't need to change the `frame_id` and `publish_frequncy` values. leave the `publish_tf_on_map_frame` value as it is in both param files.
 
@@ -73,7 +74,3 @@ This the **ROS2** Package for the using the **`Easy IMU Module`** (**`MPU9250 EI
   > the imu data should now be published with (or on) the robot's imu link frame.
 
 >*NOTE: Feel free to use/edit the package as you see fit on your project.*
-
-  
-#### Sample robot test
- - please chekout the [**`easy_demo_bot`**](https://github.com/robocre8/easy_demo_bot) package to see proper sample of how combine the EIMU with the EPMC and ekf sensor-fusion in a mobile robot.
