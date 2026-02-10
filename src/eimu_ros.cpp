@@ -66,15 +66,15 @@ public:
 
     // success = imu.clearDataBuffer();
 
-    std::tie(success, val0) = imu.getFilterGain();
+    std::tie(success, buffer0) = imu.getFilterGain();
     if (success) 
-      filterGain = val0;
+      filterGain = buffer0;
 
     imu.setWorldFrameId(world_frame_id);
 
-    std::tie(success, val0) = imu.getWorldFrameId();
+    std::tie(success, buffer0) = imu.getWorldFrameId();
     if (success)
-      world_frame_id = val0;
+      world_frame_id = buffer0;
     /*---------------------------------------------------------------------*/
 
     /*----------initialize IMU message---------------*/
@@ -94,11 +94,11 @@ public:
                                                    0.0, 0.0, static_covariance_linear_acceleration.at(8)};
 
     } else {
-      std::tie(success, val0, val1, val2) = imu.readRPYVariance();
+      std::tie(success, buffer) = imu.readRPYVariance();
       if(success){
-        data_x = val0;
-        data_y = val1;
-        data_z = val2;
+        data_x = buffer.at(0);
+        data_y = buffer.at(1);
+        data_z = buffer.at(2);
       } else {
         RCLCPP_WARN(this->get_logger(), "WARNING: Could not read IMU orientation variance, defaulting to Static orientation covariance");
         data_x = static_covariance_orientation.at(0);
@@ -109,11 +109,11 @@ public:
                                            0.0, data_y, 0.0,
                                            0.0, 0.0, data_z};
 
-      std::tie(success, val0, val1, val2) = imu.readGyroVariance();
+      std::tie(success, buffer) = imu.readGyroVariance();
       if(success){
-        data_x = val0;
-        data_y = val1;
-        data_z = val2;
+        data_x = buffer.at(0);
+        data_y = buffer.at(1);
+        data_z = buffer.at(2);
       } else {
         RCLCPP_WARN(this->get_logger(), "WARNING: Could not read IMU Gyro variance, defaulting to Static angular vel covariance");
         data_x = static_covariance_angular_velocity.at(0);
@@ -124,11 +124,11 @@ public:
                                                 0.0, data_y, 0.0,
                                                 0.0, 0.0, data_z};
 
-      std::tie(success, val0, val1, val2) = imu.readAccVariance();
+      std::tie(success, buffer) = imu.readAccVariance();
       if(success){
-        data_x = val0;
-        data_y = val1;
-        data_z = val2;
+        data_x = buffer.at(0);
+        data_y = buffer.at(1);
+        data_z = buffer.at(2);
       } else {
         RCLCPP_WARN(this->get_logger(), "WARNING: Could not read IMU acceleration variance, defaulting to Static acceleration covariance");
         data_x = static_covariance_linear_acceleration.at(0);
@@ -170,11 +170,17 @@ private:
   {
     messageImu.header.stamp = rclcpp::Clock().now();
 
-    std::tie(success, val0, val1, val2, val3, val4, val5, val6, val7, val8) = imu.readImuData();
+    std::tie(success, buffer) = imu.readImuData();
     if (success){
-      r = val0; p = val1; y = val2;
-      ax = val3; ay = val4; az = val5;
-      gx = val6; gy = val7; gz = val8;
+      r = buffer.at(0);
+      p = buffer.at(1);
+      y = buffer.at(2);
+      ax = buffer.at(3);
+      ay = buffer.at(4);
+      az = buffer.at(5);
+      gx = buffer.at(6);
+      gy = buffer.at(7);
+      gz = buffer.at(8);
     }
 
     rpy.vector.x = r;
@@ -273,7 +279,8 @@ private:
   float filterGain;
 
   bool success;
-  float val0, val1, val2, val3, val4, val5, val6, val7, val8;
+  float buffer0;
+  std::vector<float> buffer;
 };
 
 int main(int argc, char **argv)
