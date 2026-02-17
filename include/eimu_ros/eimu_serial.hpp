@@ -179,23 +179,21 @@ public:
 
     /* ---------- High-Level API ---------- */
 
-    std::tuple<bool, float, float, float, float> readQuat() { return read_data4(READ_QUAT); }
-    std::tuple<bool, float, float, float> readRPY() { return read_data3(READ_RPY); }
-    std::tuple<bool, float, float, float> readRPYVariance(){ return read_data3(READ_RPY_VAR); }
-    std::tuple<bool, float, float, float> readGyro() { return read_data3(READ_GYRO); }
-    std::tuple<bool, float, float, float> readGyroVariance(){ return read_data3(READ_GYRO_VAR); }
-    std::tuple<bool, float, float, float> readLinearAcc() { return read_data3(READ_LIN_ACC); }
-    std::tuple<bool, float, float, float> readAccVariance(){ return read_data3(READ_ACC_VAR); }
+    std::tuple<bool, std::vector<float>> readQuat() { return read_data4(READ_QUAT); }
+    std::tuple<bool, std::vector<float>> readRPY() { return read_data3(READ_RPY); }
+    std::tuple<bool, std::vector<float>> readGyro() { return read_data3(READ_GYRO); }
+    std::tuple<bool, std::vector<float>> readLinearAcc() { return read_data3(READ_LIN_ACC); }
 
-    std::tuple<bool, float, float, float, float, float, float>
-    readAccGyro() { return read_data6(READ_ACC_GYRO); }
+    std::tuple<bool, std::vector<float>> readAccGyro() { return read_data6(READ_ACC_GYRO); }
+    std::tuple<bool, std::vector<float>> readImuData() { return read_data9(READ_IMU_DATA); }
 
-    std::tuple<bool, float, float, float, float, float, float, float, float, float>
-    readImuData() { return read_data9(READ_IMU_DATA); }
+    std::tuple<bool, std::vector<float>> readRPYVariance(){ return read_data3(READ_RPY_VAR); }
+    std::tuple<bool, std::vector<float>> readGyroVariance(){ return read_data3(READ_GYRO_VAR); }
+    std::tuple<bool, std::vector<float>> readAccVariance(){ return read_data3(READ_ACC_VAR); }
 
-    std::tuple<bool, float, float, float> readMag() { return read_data3(READ_MAG); }
-    std::tuple<bool, float, float, float> readLinearAccRaw(){ return read_data3(READ_LIN_ACC_RAW); }
-    std::tuple<bool, float, float, float> readAcc() { return read_data3(READ_ACC); }
+    std::tuple<bool, std::vector<float>> readMag() { return read_data3(READ_MAG); }
+    std::tuple<bool, std::vector<float>> readLinearAccRaw(){ return read_data3(READ_LIN_ACC_RAW); }
+    std::tuple<bool, std::vector<float>> readAcc() { return read_data3(READ_ACC); }
 
     void setWorldFrameId(int frame_id) { write_data1(SET_FRAME_ID, (float)frame_id); }
     std::tuple<bool, float> getWorldFrameId(){ return read_data1(GET_FRAME_ID); }
@@ -223,24 +221,24 @@ public:
 
     void writeRPYVariance(float r, float p, float y) { write_data3(WRITE_RPY_VAR, r, p, y); }
 
-    std::tuple<bool, float, float, float> readAccRaw() { return read_data3(READ_ACC_RAW); }
-    std::tuple<bool, float, float, float> readAccOffset(){ return read_data3(READ_ACC_OFF); }
+    std::tuple<bool, std::vector<float>> readAccRaw() { return read_data3(READ_ACC_RAW); }
+    std::tuple<bool, std::vector<float>> readAccOffset(){ return read_data3(READ_ACC_OFF); }
     void writeAccOffset(float ax, float ay, float az) { write_data3(WRITE_ACC_OFF, ax, ay, az); }
     void writeAccVariance(float ax, float ay, float az) { write_data3(WRITE_ACC_VAR, ax, ay, az); }
 
-    std::tuple<bool, float, float, float> readGyroRaw() { return read_data3(READ_GYRO_RAW); }
-    std::tuple<bool, float, float, float> readGyroOffset(){ return read_data3(READ_GYRO_OFF); }
+    std::tuple<bool, std::vector<float>> readGyroRaw() { return read_data3(READ_GYRO_RAW); }
+    std::tuple<bool, std::vector<float>> readGyroOffset(){ return read_data3(READ_GYRO_OFF); }
     void writeGyroOffset(float gx, float gy, float gz) { write_data3(WRITE_GYRO_OFF, gx, gy, gz); }
     void writeGyroVariance(float gx, float gy, float gz) { write_data3(WRITE_GYRO_VAR, gx, gy, gz); }
 
-    std::tuple<bool, float, float, float> readMagRaw() { return read_data3(READ_MAG_RAW); }
-    std::tuple<bool, float, float, float> readMagHardOffset(){ return read_data3(READ_MAG_H_OFF); }
+    std::tuple<bool, std::vector<float>> readMagRaw() { return read_data3(READ_MAG_RAW); }
+    std::tuple<bool, std::vector<float>> readMagHardOffset(){ return read_data3(READ_MAG_H_OFF); }
     void writeMagHardOffset(float mx, float my, float mz) { write_data3(WRITE_MAG_H_OFF, mx, my, mz); }
-    std::tuple<bool, float, float, float> readMagSoftOffset0(){ return read_data3(READ_MAG_S_OFF0); }
+    std::tuple<bool, std::vector<float>> readMagSoftOffset0(){ return read_data3(READ_MAG_S_OFF0); }
     void writeMagSoftOffset0(float mx, float my, float mz) { write_data3(WRITE_MAG_S_OFF0, mx, my, mz); }
-    std::tuple<bool, float, float, float> readMagSoftOffset1(){ return read_data3(READ_MAG_S_OFF1); }
+    std::tuple<bool, std::vector<float>> readMagSoftOffset1(){ return read_data3(READ_MAG_S_OFF1); }
     void writeMagSoftOffset1(float mx, float my, float mz) { write_data3(WRITE_MAG_S_OFF1, mx, my, mz); }
-    std::tuple<bool, float, float, float> readMagSoftOffset2(){ return read_data3(READ_MAG_S_OFF2); }
+    std::tuple<bool, std::vector<float>> readMagSoftOffset2(){ return read_data3(READ_MAG_S_OFF2); }
     void writeMagSoftOffset2(float mx, float my, float mz) { write_data3(WRITE_MAG_S_OFF2, mx, my, mz); }
 
 private:
@@ -330,6 +328,25 @@ private:
         sendPacket(cmd, payload);
     }
 
+    void write_data3(uint8_t cmd, float a, float b, float c)
+    {
+        std::vector<uint8_t> payload(3 * sizeof(float));
+        std::memcpy(&payload[0], &a, sizeof(float));
+        std::memcpy(&payload[4], &b, sizeof(float));
+        std::memcpy(&payload[8], &c, sizeof(float));
+        sendPacket(cmd, payload);
+    }
+
+    void write_data4(uint8_t cmd, float a, float b, float c, float d)
+    {
+        std::vector<uint8_t> payload(4 * sizeof(float));
+        std::memcpy(&payload[0], &a, sizeof(float));
+        std::memcpy(&payload[4], &b, sizeof(float));
+        std::memcpy(&payload[8], &c, sizeof(float));
+        std::memcpy(&payload[12], &d, sizeof(float));
+        sendPacket(cmd, payload);
+    }
+
     std::tuple<bool, float>
     read_data1(uint8_t cmd, uint8_t pos = 0)
     {
@@ -341,48 +358,65 @@ private:
         sendPacket(cmd, payload);
 
         auto [ok, vals] = readFloats(1);
-        return {ok, round_to_dp(vals[0],3)};
+        return {ok, round_to_dp(vals[0],6)};
     }
 
-    void write_data3(uint8_t cmd, float a, float b, float c)
-    {
-        std::vector<uint8_t> payload(3 * sizeof(float));
-        std::memcpy(&payload[0], &a, sizeof(float));
-        std::memcpy(&payload[4], &b, sizeof(float));
-        std::memcpy(&payload[8], &c, sizeof(float));
-        sendPacket(cmd, payload);
-    }
-
-    std::tuple<bool, float, float, float>
+    std::tuple<bool, std::vector<float>>
     read_data3(uint8_t cmd)
     {
         sendPacket(cmd);
         auto [ok, vals] = readFloats(3);
-        return {ok, round_to_dp(vals[0],6), round_to_dp(vals[1],6), round_to_dp(vals[2],6)};
+        std::vector<float> value(3);
+        value[0] = round_to_dp(vals[0],6);
+        value[1] = round_to_dp(vals[1],6);
+        value[2] = round_to_dp(vals[2],6);
+        return {ok, value};
     }
 
-    std::tuple<bool, float, float, float, float>
+    std::tuple<bool, std::vector<float>>
     read_data4(uint8_t cmd)
     {
         sendPacket(cmd);
         auto [ok, vals] = readFloats(4);
-        return {ok, round_to_dp(vals[0],6), round_to_dp(vals[1],6), round_to_dp(vals[2],6), round_to_dp(vals[3],6)};
+        std::vector<float> value(4);
+        value[0] = round_to_dp(vals[0],6);
+        value[1] = round_to_dp(vals[1],6);
+        value[2] = round_to_dp(vals[2],6);
+        value[3] = round_to_dp(vals[3],6);
+        return {ok, value};
     }
 
-    std::tuple<bool, float, float, float, float, float, float>
+    std::tuple<bool, std::vector<float>>
     read_data6(uint8_t cmd)
     {
         sendPacket(cmd);
         auto [ok, vals] = readFloats(6);
-        return {ok, round_to_dp(vals[0],6), round_to_dp(vals[1],6), round_to_dp(vals[2],6), round_to_dp(vals[3],6), round_to_dp(vals[4],6), round_to_dp(vals[5],6)};
+        std::vector<float> value(6);
+        value[0] = round_to_dp(vals[0],6);
+        value[1] = round_to_dp(vals[1],6);
+        value[2] = round_to_dp(vals[2],6);
+        value[3] = round_to_dp(vals[3],6);
+        value[4] = round_to_dp(vals[4],6);
+        value[5] = round_to_dp(vals[5],6);
+        return {ok, value};
     }
 
-    std::tuple<bool, float, float, float, float, float, float, float, float, float>
+    std::tuple<bool, std::vector<float>>
     read_data9(uint8_t cmd)
     {
         sendPacket(cmd);
         auto [ok, vals] = readFloats(9);
-        return {ok, round_to_dp(vals[0],6), round_to_dp(vals[1],6), round_to_dp(vals[2],6), round_to_dp(vals[3],6), round_to_dp(vals[4],6), round_to_dp(vals[5],6), round_to_dp(vals[6],6), round_to_dp(vals[7],6), round_to_dp(vals[8],6)};
+        std::vector<float> value(9);
+        value[0] = round_to_dp(vals[0],6);
+        value[1] = round_to_dp(vals[1],6);
+        value[2] = round_to_dp(vals[2],6);
+        value[3] = round_to_dp(vals[3],6);
+        value[4] = round_to_dp(vals[4],6);
+        value[5] = round_to_dp(vals[5],6);
+        value[6] = round_to_dp(vals[6],6);
+        value[7] = round_to_dp(vals[7],6);
+        value[8] = round_to_dp(vals[8],6);
+        return {ok, value};
     }
 };
 
